@@ -1,0 +1,23 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2008
+
+Project("{688A6D35-27B5-8298-D059-2A9C6C1CEBA7}") = "LegoDecoder", "Assembly-CSharp.csproj", "{D5851C0D-E222-9831-B250-218D470ED6D2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D5851C0D-E222-9831-B250-218D470ED6D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5851C0D-E222-9831-B250-218D470ED6D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5851C0D-E222-9831-B250-218D470ED6D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5851C0D-E222-9831-B250-218D470ED6D2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = Assembly-CSharp.csproj
+	EndGlobalSection
+EndGlobal
