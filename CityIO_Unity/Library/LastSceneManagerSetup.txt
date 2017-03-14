@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/CityIO_Unity.unity
+- path: Assets/cityIO_Sharp/CityIO_Sharp.unity
   isLoaded: 1
   isActive: 1

@@ -52,7 +52,7 @@ public class Table
 public class cityIO : MonoBehaviour
 {
 
-//	private string localJson = "file:///Users/noyman/GIT/KendallAgents/Assets/Resources/scripts/citymatrix_volpe.json";
+	//	private string localJson = "file:///Users/noyman/GIT/KendallAgents/Assets/Resources/scripts/citymatrix_volpe.json"; //local file
 	private string urlStart = "http://45.55.73.103/table/citymatrix_";
 	public string urlTable = "volpe";
 
@@ -74,17 +74,16 @@ public class cityIO : MonoBehaviour
 
 	public Table Cells;
 	public GameObject gridParent;
+	public GameObject textMeshPrefab;
 	public static List<GameObject> gridObjects = new List<GameObject> ();
 	//new list!
-
-
 
 	public Color[] colors;
 
 
-
 	IEnumerator Start ()
 	{
+
 		while (true) {
 			
 			url = urlStart + urlTable;
@@ -97,6 +96,7 @@ public class cityIO : MonoBehaviour
 			if (cityIOtext != cityIOtext_Old) {
 				cityIOtext_Old = cityIOtext; //new data has arrived from server 
 				jsonHandler ();
+
 
 			}
 		}
@@ -129,36 +129,55 @@ public class cityIO : MonoBehaviour
 			cube.transform.parent = gridParent.transform; //put into parent object for later control 
 			cube.transform.position = new Vector3 ((Cells.grid [i].x * cellWorldSize), 0, (Cells.grid [i].y * cellWorldSize)); //compensate for scale shift due to height
 
+			meshTextType (i); /// call if you need type text float 
 
-			for (int n = -10; n < Cells.objects.density.Count; n++) { //go through all 'densities' to match Type to Height 
+			for (int n = -5; n < Cells.objects.density.Count + 1; n++) { //go through all 'densities' to match Type to Height. Add +1 so #6 (Road could be in. Fix in JSON Needed) 
 				if (Cells.grid [i].type == n) {
-					
-					if (Cells.grid [i].type >= 0) { //if this cell is one of the buildings types
-				
+
+					if (n == 6) { //Street -- Should be fixed in JSON formatting 
+						cube.transform.localScale = new Vector3 (cellShrink * cellWorldSize, 1, cellShrink * cellWorldSize);
+						var _tmpColor = Color.gray; 
+						_tmpColor.a = 0.75f; 
+						cube.GetComponent<Renderer> ().material.color = _tmpColor;
+
+					} else if (Cells.grid [i].type > -1 && Cells.grid [i].type < 6) { //if this cell is one of the buildings types
 						cube.transform.localScale = new Vector3 (cellShrink * cellWorldSize, (Cells.objects.density [n] * floorHeight), cellShrink * cellWorldSize);
 						cube.transform.position = new Vector3 (cube.transform.position.x, (Cells.objects.density [n] * floorHeight) / 2, cube.transform.position.z); //compensate for scale shift and x,y array
 						cube.AddComponent<NavMeshObstacle> ();
 						cube.GetComponent<NavMeshObstacle> ().carving = true; 
-						cube.GetComponent<Renderer> ().material.color = colors [Cells.grid [i].type];
+						var _tmpColor = colors [Cells.grid [i].type];
+						_tmpColor.a = 0.75f; 
+						cube.GetComponent<Renderer> ().material.color = _tmpColor;
+							
 
-						//cube.tag = "amenity"; // to become attractor 
-
-				
-					} else { //if road, green or other non building 
-				
-						cube.transform.position = new Vector3 (cube.transform.position.x, -5, cube.transform.position.z); //hide base plates 
+					} else { //if green or other non building 
+						cube.transform.position = new Vector3 (cube.transform.position.x, 0, cube.transform.position.z); //hide base plates 
 						cube.transform.localScale = new Vector3 (cellShrink * cellWorldSize, 1, cellShrink * cellWorldSize);
-						cube.GetComponent<Renderer> ().material.color = Color.black;
+						cube.AddComponent<NavMeshObstacle> ();
+						cube.GetComponent<NavMeshObstacle> ().carving = true; 
+						cube.GetComponent<Renderer> ().material.color = Color.green;
 					}
-				
+
 				}
 			}
 
 			gridObjects.Add (cube); //add this Gobj to list
 		}
+	}
 
+	private void meshTextType (int i) //mesh type text metod 
+	{
 
+		GameObject textMesh = GameObject.Instantiate (textMeshPrefab, new Vector3 ((Cells.grid [i].x * cellWorldSize), 
+			                      cube.transform.localScale.y + floorHeight, (Cells.grid [i].y * cellWorldSize)), 
+			                      cube.transform.rotation, transform) as GameObject; //spwan prefab text
+
+		textMesh.GetComponent<TextMesh> ().text = Cells.grid [i].type.ToString ();
+		textMesh.GetComponent<TextMesh> ().fontSize = 150;
+		textMesh.GetComponent<TextMesh> ().color = Color.black;
+		textMesh.GetComponent<TextMesh> ().characterSize = .5f; 	
 	}
 
 }
+
 
