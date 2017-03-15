@@ -8,19 +8,16 @@ using System.Collections.Generic;
 public class keyStone : MonoBehaviour
 {
 
-
-
 	// quad control vars
 	public Vector3[] _vertices;
 	private GameObject[] corners;
-	public bool onoffkeystone = false;
-	public int selectedCorner = 0;
-
+	public bool _useKeystone = true;
+	public int selectedCorner;
 
 	void Start ()
 	{
 
-		Destroy (this.GetComponent <MeshCollider> ()); //destroy so we can make on in dynamically 
+		Destroy (this.GetComponent <MeshCollider> ()); //destroy so we can make one in dynamically 
 		transform.gameObject.AddComponent <MeshCollider> (); //add new collider 
 	
 		Mesh mesh = GetComponent<MeshFilter> ().mesh; // get this GO mesh
@@ -33,8 +30,6 @@ public class keyStone : MonoBehaviour
 	{
 		Mesh mesh = GetComponent<MeshFilter> ().mesh;
 		mesh.vertices = _vertices;
-
-
 		 
 		// Zero out the left and bottom edges, 
 		// leaving a right trapezoid with two sides on the axes and a vertex at the origin.
@@ -53,10 +48,8 @@ public class keyStone : MonoBehaviour
 		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
 		mesh.uv2 = widths_heights;
 
-
-
-		onOffObjects (onoffkeystone);// toggles onoff at each click
-		if (onoffkeystone) {
+		onOffObjects (_useKeystone); // toggles onoff at each click
+		if (_useKeystone) {
 			OnSceneControl ();
 		}
 
@@ -90,14 +83,20 @@ public class keyStone : MonoBehaviour
 
 	private void OnSceneControl ()
 	{
-		if (!onoffkeystone)
+		if (Input.anyKey)
+		{
+			Debug.Log(Input.inputString);
+		}
+
+		if (!_useKeystone)
 			return;
-		
-		var corner = Input.GetKeyDown ("1") ? 0 : Input.GetKeyDown ("2") ? 1 : Input.GetKeyDown ("3") ? 2 : Input.GetKeyDown ("4") ? 3 : selectedCorner;
+
+		var corner = Input.GetKeyDown ("1") ? 0 : (Input.GetKeyDown ("2") ? 1 : (Input.GetKeyDown ("3") ? 2 : (Input.GetKeyDown ("4") ? 3 : selectedCorner)));
 		if (corner != selectedCorner) {
 			corners [selectedCorner].GetComponent<Renderer> ().material.color = Color.red;
 			corners [corner].GetComponent<Renderer> ().material.color = Color.green;
 			selectedCorner = corner;
+			Debug.Log("Selection changed to " + selectedCorner.ToString());
 		}
 
 		float speed = 0.5f;

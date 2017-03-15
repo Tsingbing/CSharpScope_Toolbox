@@ -10,8 +10,6 @@ using System.Linq;
 public class Scanners : MonoBehaviour
 {
 
-
-
 	// webcam and scanner vars
 	public static List<GameObject> scannersList = new List<GameObject> ();
 	public GameObject _gridParent;
@@ -21,6 +19,8 @@ public class Scanners : MonoBehaviour
 	RaycastHit hit;
 	public int _refreshRate = 1;
 	public float _scannerScale = 0.5f;
+	public bool _useWebcam;
+	public bool _showRays = false;
 
 
 	IEnumerator Start ()
@@ -33,23 +33,37 @@ public class Scanners : MonoBehaviour
 
 			Texture2D _texture = new Texture2D (GetComponent<Renderer> ().material.mainTexture.width, 
 				                     GetComponent<Renderer> ().material.mainTexture.height);
-			//_texture.SetPixels ((GetComponent<Renderer> ().material.mainTexture as WebCamTexture).GetPixels ()); //for webcam 
-			_texture.SetPixels ((GetComponent<Renderer> ().material.mainTexture as Texture2D).GetPixels ()); // for texture map 
 
+			if (_useWebcam) {
+				_texture.SetPixels ((GetComponent<Renderer> ().material.mainTexture as WebCamTexture).GetPixels ()); //for webcam 
+			}
+			else {
+				_texture.SetPixels ((GetComponent<Renderer> ().material.mainTexture as Texture2D).GetPixels ()); // for texture map 
+			};
+				
 			_texture.Apply (); //need fixing!!!
 
 			yield return new WaitForSeconds (_refreshRate);
 
 			for (int i = 0; i < scannersList.Count; i++) {
-				
 				if (Physics.Raycast (scannersList [i].transform.position, Vector3.down, out hit, 6)) {
+
 					if (hit.triangleIndex == 1) {
 
-						int _locX = Mathf.RoundToInt (1 - hit.barycentricCoordinate.x * _texture.width); // - 1 to invert order, GOD DAMN THIS TOOK @$@#$ TO FIND!!
-						int _locY = Mathf.RoundToInt (hit.barycentricCoordinate.y * _texture.height); 
+						// Get local tex coords w.r.t. triangle
+//						int _locX = Mathf.RoundToInt ((1 - hit.transform.InverseTransformPoint (hit.textureCoord).x) * _texture.width); // - 1 to invert order, GOD DAMN THIS TOOK @$@#$ TO FIND!!
+//						int _locY = Mathf.RoundToInt (hit.transform.InverseTransformPoint (hit.textureCoord).y * _texture.height); 
+
+						int _locX = Mathf.RoundToInt (hit.textureCoord.x * _texture.width); // - 1 to invert order, GOD DAMN THIS TOOK @$@#$ TO FIND!!
+						int _locY = Mathf.RoundToInt (hit.textureCoord.y * _texture.height); 
 
 						Color pixel = _texture.GetPixel (_locX, _locY); 
 						scannersList [i].GetComponent<Renderer> ().material.color = pixel; //paint scanner with the found color 
+
+						if (_showRays) {
+							Debug.DrawLine (scannersList [i].transform.position, hit.point, pixel, 200, false);
+							Debug.Log (hit.point);
+						}
 
 					} else {
 						
@@ -63,6 +77,10 @@ public class Scanners : MonoBehaviour
 						Color pixel = _texture.GetPixel (_locX, _locY); 
 						scannersList [i].GetComponent<Renderer> ().material.color = pixel; //paint scanner with the found color 
 
+						if (_showRays) {
+							Debug.DrawLine (scannersList [i].transform.position, hit.point, pixel, 200, false);
+							Debug.Log (hit.point);
+						}
 					}
 
 				} else { 
@@ -76,7 +94,7 @@ public class Scanners : MonoBehaviour
 	{
 		for (int x = 0; x < _numOfScannersX; x++) {
 			for (int y = 0; y < _numOfScannersY; y++) {
-				_scanner = GameObject.CreatePrimitive (PrimitiveType.Sphere);
+				_scanner = GameObject.CreatePrimitive (PrimitiveType.Cube);
 				_scanner.name = "grid_" + scannersList.Count;
 				_scanner.transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale);  
 				_scanner.transform.position = new Vector3 (x * _scannerScale * 2, 2, y * _scannerScale * 2);
