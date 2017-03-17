@@ -21,6 +21,7 @@ public class Scanners : MonoBehaviour
 	public float _scannerScale = 0.5f;
 	public bool _useWebcam;
 	public bool _showRays = false;
+	private Texture2D _texture;
 
 
 	IEnumerator Start ()
@@ -31,7 +32,7 @@ public class Scanners : MonoBehaviour
 
 			yield return new WaitForEndOfFrame ();
 
-			Texture2D _texture = new Texture2D (GetComponent<Renderer> ().material.mainTexture.width, 
+			_texture = new Texture2D (GetComponent<Renderer> ().material.mainTexture.width, 
 				                     GetComponent<Renderer> ().material.mainTexture.height);
 
 			if (_useWebcam) {
@@ -47,7 +48,6 @@ public class Scanners : MonoBehaviour
 
 			for (int i = 0; i < scannersList.Count; i++) {
 				if (Physics.Raycast (scannersList [i].transform.position, Vector3.down, out hit, 6)) {
-
 					if (hit.triangleIndex == 1) {
 
 						// Get local tex coords w.r.t. triangle
@@ -59,12 +59,6 @@ public class Scanners : MonoBehaviour
 
 						Color pixel = _texture.GetPixel (_locX, _locY); 
 						scannersList [i].GetComponent<Renderer> ().material.color = pixel; //paint scanner with the found color 
-
-						if (_showRays) {
-							Debug.DrawLine (scannersList [i].transform.position, hit.point, pixel, 200, false);
-							Debug.Log (hit.point);
-						}
-
 					} else {
 						
 						///
@@ -76,15 +70,27 @@ public class Scanners : MonoBehaviour
 
 						Color pixel = _texture.GetPixel (_locX, _locY); 
 						scannersList [i].GetComponent<Renderer> ().material.color = pixel; //paint scanner with the found color 
-
-						if (_showRays) {
-							Debug.DrawLine (scannersList [i].transform.position, hit.point, pixel, 200, false);
-							Debug.Log (hit.point);
-						}
 					}
-
 				} else { 
 					scannersList [i].GetComponent<Renderer> ().material.color = Color.magenta; //paint scanner with Out of bounds  color 
+				}
+			}
+		}
+	}
+
+	void Update ()
+	{
+		// Debug ray visualization
+		if (_showRays) {
+			for (int i = 0; i < scannersList.Count; i++) {
+				if (Physics.Raycast (scannersList [i].transform.position, Vector3.down, out hit, 6)) {
+					
+						int _locX = Mathf.RoundToInt (hit.textureCoord.x * _texture.width);
+						int _locY = Mathf.RoundToInt (hit.textureCoord.y * _texture.height); 
+
+						Color pixel = _texture.GetPixel (_locX, _locY); 
+						Debug.DrawLine (scannersList [i].transform.position, hit.point, pixel);
+						Debug.Log (hit.point);
 				}
 			}
 		}
@@ -105,6 +111,4 @@ public class Scanners : MonoBehaviour
 		}
 		scannersList = scannersList.OrderBy (i => i.name).ToList ();
 	}
-
-
 }

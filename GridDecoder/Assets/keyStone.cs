@@ -21,7 +21,7 @@ public class keyStone : MonoBehaviour
 		transform.gameObject.AddComponent <MeshCollider> (); //add new collider 
 	
 		Mesh mesh = GetComponent<MeshFilter> ().mesh; // get this GO mesh
-		mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };	
+		mesh.triangles = new int[] { 0, 2, 3, 0, 1, 2 };	// lower left & upper right
 
 		cornerMaker (); //make the corners for visual controls 
 	}
@@ -33,20 +33,29 @@ public class keyStone : MonoBehaviour
 		 
 		// Zero out the left and bottom edges, 
 		// leaving a right trapezoid with two sides on the axes and a vertex at the origin.
-		var shiftedPositions = new Vector2[] {
-			Vector2.zero,
-			new Vector2 (0, _vertices [1].y - _vertices [0].y),
-			new Vector2 (_vertices [2].x - _vertices [1].x, _vertices [2].y - _vertices [3].y),
-			new Vector2 (_vertices [3].x - _vertices [0].x, 0)
-		};
-		mesh.uv = shiftedPositions;
+//		var shiftedPositions = new Vector2[] {
+//			Vector2.zero,
+//			new Vector2 (0, _vertices [1].y - _vertices [0].y),
+//			new Vector2 (_vertices [2].x - _vertices [1].x, _vertices [2].y - _vertices [3].y),
+//			new Vector2 (_vertices [3].x - _vertices [0].x, 0)
+//		};
+//		mesh.uv = shiftedPositions;
 
-		var widths_heights = new Vector2[4];
-		widths_heights [0].x = widths_heights [3].x = shiftedPositions [3].x;
-		widths_heights [1].x = widths_heights [2].x = shiftedPositions [2].x;
-		widths_heights [0].y = widths_heights [1].y = shiftedPositions [1].y;
-		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
-		mesh.uv2 = widths_heights;
+		Vector2[] uv = new Vector2[4];
+
+		uv[0] = new Vector2(0, 0);
+		uv[1] = new Vector2(0, 0.5f);
+		uv[2] = new Vector2(0.5f, 1f);
+		uv[3] = new Vector2(0, 1);
+
+		mesh.uv = uv;
+
+//		var widths_heights = new Vector2[4];
+//		widths_heights [0].x = widths_heights [3].x = shiftedPositions [3].x;
+//		widths_heights [1].x = widths_heights [2].x = shiftedPositions [2].x;
+//		widths_heights [0].y = widths_heights [1].y = shiftedPositions [1].y;
+//		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
+//		mesh.uv2 = widths_heights;
 
 		onOffObjects (_useKeystone); // toggles onoff at each click
 		if (_useKeystone) {
