@@ -51,14 +51,14 @@ public class Scanners : MonoBehaviour
 					if (hit.triangleIndex == 1) {
 
 						// Get local tex coords w.r.t. triangle
-//						int _locX = Mathf.RoundToInt ((1 - hit.transform.InverseTransformPoint (hit.textureCoord).x) * _texture.width); // - 1 to invert order, GOD DAMN THIS TOOK @$@#$ TO FIND!!
-//						int _locY = Mathf.RoundToInt (hit.transform.InverseTransformPoint (hit.textureCoord).y * _texture.height); 
 
 						int _locX = Mathf.RoundToInt (hit.textureCoord.x * _texture.width); // - 1 to invert order, GOD DAMN THIS TOOK @$@#$ TO FIND!!
 						int _locY = Mathf.RoundToInt (hit.textureCoord.y * _texture.height); 
 
 						Color pixel = _texture.GetPixel (_locX, _locY); 
 						scannersList [i].GetComponent<Renderer> ().material.color = pixel; //paint scanner with the found color 
+
+
 					} else {
 						
 						///
@@ -94,6 +94,7 @@ public class Scanners : MonoBehaviour
 				}
 			}
 		}
+
 	}
 
 	private void scannersMaker ()
