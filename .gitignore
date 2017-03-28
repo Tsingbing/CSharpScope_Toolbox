@@ -2,4 +2,6 @@
 ######################
 
 **/ShaderCache/*
-
+**/Temp/*
+**/GridDecoder/Temp/*
+**/GridDecoder/GridDecoder.sln
