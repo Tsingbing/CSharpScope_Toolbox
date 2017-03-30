@@ -41,20 +41,38 @@ public class keyStone : MonoBehaviour
 		// 1: 0, 1
 		// 2: 1, 1
 		// 3: 1, 0
-		var shiftedPositions = new Vector2[] {
-			Vector2.zero,
-			new Vector2 (0, _vertices [1].y - _vertices [0].y),
-			new Vector2 (_vertices [2].x - _vertices [1].x, _vertices [2].y - _vertices [3].y),
-			new Vector2 (_vertices [3].x - _vertices [0].x, 0)
-		};
-		mesh.uv = shiftedPositions;
+//		var shiftedPositions = new List<Vector4> {
+//			Vector4.zero,
+//			new Vector4 (0, _vertices [1].y - _vertices [0].y, 0, _vertices [1].y - _vertices [0].y),
+//			new Vector4 (_vertices [2].x - _vertices [1].x, _vertices [2].y - _vertices [3].y, 0, _vertices [2].y - _vertices [3].y),
+//			new Vector4 (_vertices [3].x - _vertices [0].x, 0, 0, 0)
+//		};
+//		mesh.uv = shiftedPositions;
 
-		var widths_heights = new Vector2[4];
-		widths_heights [0].x = widths_heights [3].x = shiftedPositions [3].x;
-		widths_heights [1].x = widths_heights [2].x = shiftedPositions [2].x;
-		widths_heights [0].y = widths_heights [1].y = shiftedPositions [1].y;
-		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
-		mesh.uv2 = widths_heights;
+
+
+		float xTop = _vertices [2].x - _vertices [1].x;
+		float xBottom = _vertices [3].x - _vertices [0].x;
+		float yHeight = _vertices [1].y - _vertices [0].y;
+
+		Debug.Log ("x: " + xTop + "\ty : " + yHeight); 
+		Debug.Log ("x: " + _vertices [0].x + " " + _vertices [1].x + " " + _vertices [2].x + " " + _vertices [3].x + " "); 
+
+		var shiftedPositions = new List<Vector4> {
+			new Vector4 (0, 0, 0, _vertices [3].x - _vertices [0].x),
+			new Vector4 (0, _vertices [1].y - _vertices [0].y, 0, _vertices [1].y - _vertices [0].y),
+			new Vector4 (_vertices [2].x - _vertices [1].x, _vertices [2].y - _vertices [3].y, 0, xBottom / xTop),
+			new Vector4 (_vertices [3].x - _vertices [0].x, 0, 0, _vertices [3].x - _vertices [0].x)
+		};
+		mesh.SetUVs (1, shiftedPositions);
+		mesh.SetUVs (0, shiftedPositions);
+//
+//		var widths_heights = new Vector2[4];
+//		widths_heights [0].x = widths_heights [3].x = shiftedPositions [3].x;
+//		widths_heights [1].x = widths_heights [2].x = shiftedPositions [2].x;
+//		widths_heights [0].y = widths_heights [1].y = shiftedPositions [1].y;
+//		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
+//		mesh.uv2 = widths_heights;
 
 		mesh.RecalculateNormals();
 
@@ -93,10 +111,10 @@ public class keyStone : MonoBehaviour
 
 	private void OnSceneControl ()
 	{
-		if (Input.anyKey)
-		{
-			Debug.Log(Input.inputString);
-		}
+//		if (Input.anyKey)
+//		{
+//			Debug.Log(Input.inputString);
+//		}
 
 		if (!_useKeystone)
 			return;
