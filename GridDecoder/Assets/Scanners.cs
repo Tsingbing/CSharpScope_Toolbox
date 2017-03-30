@@ -25,8 +25,8 @@ public class Scanners : MonoBehaviour
 	public float _scannerScale = 0.5f;
 	public bool _useWebcam;
 	public bool _showRays = false;
-	float xOffset = 0;
-	float yOffset = 0;
+	public float xOffset = 0;
+	public float zOffset = 0;
 
 
 	IEnumerator Start ()
@@ -38,10 +38,12 @@ public class Scanners : MonoBehaviour
 			Debug.Log ("Keystoned quad not found.");
 		}
 		else {
-			xOffset = keystonedQuad.transform.position.x - _gridParent.transform.position.x;
-			yOffset = keystonedQuad.transform.position.y - _gridParent.transform.position.y;
+			Debug.Log ("Keystoned quad's position: " + keystonedQuad.transform.position.x);
+			Debug.Log ("Grid position: " + _gridParent.transform.position.x);
+//			xOffset = keystonedQuad.transform.position.x - _gridParent.transform.position.x;
+//			zOffset = keystonedQuad.transform.position.z - _gridParent.transform.position.z;
 			Debug.Log ("X offset is " + xOffset);
-			Debug.Log ("Y offset is " + yOffset);
+			Debug.Log ("Z offset is " + zOffset);
 		}
 
 	
@@ -67,16 +69,27 @@ public class Scanners : MonoBehaviour
 				if (Physics.Raycast (scannersList [i].transform.position, Vector3.down, out hit, 6)) {
 						// Get local tex coords w.r.t. triangle
 
-						int _locX = Mathf.RoundToInt (hit.textureCoord.x * _texture.width - xOffset); // - 1 to invert order, GOD DAMN THIS TOOK @$@#$ TO FIND!!
-						int _locY = Mathf.RoundToInt (hit.textureCoord.y * _texture.height - yOffset); 
+					int _locX = Mathf.RoundToInt (hit.textureCoord.x * _texture.width - xOffset);
+					int _locY = Mathf.RoundToInt (hit.textureCoord.y * _texture.height - zOffset); 
 
-						Color pixel = _texture.GetPixel (_locX, _locY); 
+					RenderTexture rt = hit.transform.GetComponent<Renderer> ().material.mainTexture as RenderTexture;
+					RenderTexture.active = rt;
+					Texture2D hitTex = new Texture2D (rt.width, rt.height, TextureFormat.RGB24, false);
+
+					hitTex.ReadPixels( new Rect(0, 0, rt.width, rt.height), 0, 0);
+
+					if (!hitTex) {
+						Debug.Log ("No hit texture");
+						scannersList [i].GetComponent<Renderer> ().material.color = Color.magenta;
+					}
+					else {
+						Color pixel = hitTex.GetPixel (_locX, _locY); 
 						scannersList [i].GetComponent<Renderer> ().material.color = pixel; //paint scanner with the found color 
-
 						if (_showRays) {
 							Debug.DrawLine (scannersList [i].transform.position, hit.point, pixel, 200, false);
 							Debug.Log (hit.point);
 						}
+					}
 
 				} else { 
 					scannersList [i].GetComponent<Renderer> ().material.color = Color.magenta; //paint scanner with Out of bounds  color 
