@@ -69,9 +69,6 @@ public class Scanners : MonoBehaviour
 				if (Physics.Raycast (scannersList [i].transform.position, Vector3.down, out hit, 6)) {
 						// Get local tex coords w.r.t. triangle
 
-					int _locX = Mathf.RoundToInt (hit.textureCoord.x * _texture.width - xOffset);
-					int _locY = Mathf.RoundToInt (hit.textureCoord.y * _texture.height - zOffset); 
-
 					RenderTexture rt = hit.transform.GetComponent<Renderer> ().material.mainTexture as RenderTexture;
 					RenderTexture.active = rt;
 					Texture2D hitTex = new Texture2D (rt.width, rt.height, TextureFormat.RGB24, false);
@@ -83,12 +80,16 @@ public class Scanners : MonoBehaviour
 						scannersList [i].GetComponent<Renderer> ().material.color = Color.magenta;
 					}
 					else {
+						int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width - xOffset);
+						int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height - zOffset); 
 						Color pixel = hitTex.GetPixel (_locX, _locY); 
 						scannersList [i].GetComponent<Renderer> ().material.color = pixel; //paint scanner with the found color 
 						if (_showRays) {
 							Debug.DrawLine (scannersList [i].transform.position, hit.point, pixel, 200, false);
 							Debug.Log (hit.point);
 						}
+
+						RenderTexture.active = null;
 					}
 
 				} else { 
