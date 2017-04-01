@@ -11,7 +11,7 @@ public class Scanners : MonoBehaviour
 {
 
 	// webcam and scanner vars
-	public static List<GameObject> scannersList = new List<GameObject> ();
+	public static GameObject[,] scannersList;
 	public GameObject _gridParent;
 	public int _numOfScannersX;
 	public int _numOfScannersY;
@@ -21,12 +21,13 @@ public class Scanners : MonoBehaviour
 	Texture2D _texture;
 	GameObject keystonedQuad;
 
-	public int _refreshRate = 1;
+	public int _refreshRate = 10;
 	public float _scannerScale = 0.5f;
 	public bool _useWebcam;
 	public bool _showRays = false;
 	public float xOffset = 0;
 	public float zOffset = 0;
+	public bool refresh = false;
 
 	// red, black, white, gray
 	private Vector3[] colors = new Vector3[] { new Vector3(1f, 0f, 0f), new Vector3(1f, 1f, 1f), new Vector3(0f, 0f, 0f), new Vector3(0.5f, 0.5f, 0.5f)};
@@ -34,6 +35,7 @@ public class Scanners : MonoBehaviour
 
 	IEnumerator Start ()
 	{
+		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
 		scannersMaker ();
 
 		keystonedQuad = GameObject.Find ("KeystonedTextureQuad");
@@ -54,39 +56,41 @@ public class Scanners : MonoBehaviour
 	
 		while (true) {
 
-			yield return new WaitForEndOfFrame ();
-
+			if (!refresh) {
+				yield return new WaitForEndOfFrame ();
+			}
 			setTexture ();
-
 			yield return new WaitForSeconds (_refreshRate);
 
 			// Assign render texture from keystoned quad texture copy & copy it to a Texture2D
 			Texture2D hitTex = assignRenderTexture();
 
-			for (int i = 0; i < scannersList.Count; i++) {
-				if (Physics.Raycast (scannersList [i].transform.position, Vector3.down, out hit, 6)) {
-					// Get local tex coords w.r.t. triangle
+			// Assign scanner colors
+			for (int i = 0; i < _numOfScannersX; i++) {
+				for (int j = 0; j < _numOfScannersY; j++) {
+					if (Physics.Raycast (scannersList [i, j].transform.position, Vector3.down, out hit, 6)) {
+						// Get local tex coords w.r.t. triangle
 
-					if (!hitTex) {
-						Debug.Log ("No hit texture");
-						scannersList [i].GetComponent<Renderer> ().material.color = Color.magenta;
-					}
-					else {
-						int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width - xOffset);
-						int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height - zOffset); 
-						Color pixel = hitTex.GetPixel (_locX, _locY);
-						pixel = closestColor (pixel);
+						if (!hitTex) {
+							Debug.Log ("No hit texture");
+							scannersList [i, j].GetComponent<Renderer> ().material.color = Color.magenta;
+						} else {
+							int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width - xOffset);
+							int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height - zOffset); 
+							Color pixel = hitTex.GetPixel (_locX, _locY);
+							pixel = closestColor (pixel);
 
-						//paint scanner with the found color 
-						scannersList [i].GetComponent<Renderer> ().material.color = pixel;
+							//paint scanner with the found color 
+							scannersList [i, j].GetComponent<Renderer> ().material.color = pixel;
 
-						if (_showRays) {
-							Debug.DrawLine (scannersList [i].transform.position, hit.point, pixel, 200, false);
-							Debug.Log (hit.point);
+							if (_showRays) {
+								Debug.DrawLine (scannersList [i, j].transform.position, hit.point, pixel, 200, false);
+								Debug.Log (hit.point);
+							}
 						}
+					} else { 
+						scannersList [i, j].GetComponent<Renderer> ().material.color = Color.magenta; //paint scanner with Out of bounds  color 
 					}
-				} else { 
-					scannersList [i].GetComponent<Renderer> ().material.color = Color.magenta; //paint scanner with Out of bounds  color 
 				}
 			}
 		}
@@ -147,15 +151,15 @@ public class Scanners : MonoBehaviour
 		for (int x = 0; x < _numOfScannersX; x++) {
 			for (int y = 0; y < _numOfScannersY; y++) {
 				_scanner = GameObject.CreatePrimitive (PrimitiveType.Cube);
-				_scanner.name = "grid_" + scannersList.Count;
+				_scanner.name = "grid_" + y + _numOfScannersX * x;
 				_scanner.transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale);  
 				_scanner.transform.position = new Vector3 (x * _scannerScale * 2, 25, y * _scannerScale * 2);
 				_scanner.transform.Rotate (90, 0, 0); 
 				_scanner.transform.parent = _gridParent.transform;
-				scannersList.Add (this._scanner);
+				scannersList[x, y] = this._scanner;
 			}
 		}
-		scannersList = scannersList.OrderBy (i => i.name).ToList ();
+		//scannersList = scannersList.OrderBy (i => i.name).ToList ();
 	}
 
 
