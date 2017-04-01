@@ -12,6 +12,8 @@ public class Scanners : MonoBehaviour
 
 	// webcam and scanner vars
 	public static GameObject[,] scannersList;
+	public static int[,] currentIds;
+
 	public GameObject _gridParent;
 	public int _numOfScannersX;
 	public int _numOfScannersY;
@@ -28,16 +30,29 @@ public class Scanners : MonoBehaviour
 	public float xOffset = 0;
 	public float zOffset = 0;
 	public bool refresh = false;
+	public bool debug = true;
 
 	// red, black, white, gray
-	private Vector3[] colors = new Vector3[] { new Vector3(1f, 0f, 0f), new Vector3(1f, 1f, 1f), new Vector3(0f, 0f, 0f), new Vector3(0.5f, 0.5f, 0.5f)};
+	private Vector3[] colors = new Vector3[] { new Vector3(1f, 0f, 0f), new Vector3(0f, 0f, 0f), new Vector3(1f, 1f, 1f), new Vector3(0.5f, 0.5f, 0.5f)};
+	private Texture2D hitTex;
+	private Dictionary<string, int> idList = new Dictionary<string, int>
+	{
+		{ "1202", 0 },
+		{ "0101", 1 }, 
+		{ "1111", 3 },
+		{ "2222", 4 }, 
+		{ "1000", 5 },
+		{ "0111", 6 }, 
 
+	};
 
 	IEnumerator Start ()
 	{
 		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
+		currentIds = new int[_numOfScannersX / 2, _numOfScannersY / 2];
 		scannersMaker ();
 
+		// Find copy mesh with RenderTexture
 		keystonedQuad = GameObject.Find ("KeystonedTextureQuad");
 		if (!keystonedQuad) {
 			Debug.Log ("Keystoned quad not found.");
@@ -45,10 +60,6 @@ public class Scanners : MonoBehaviour
 		else {
 			Debug.Log ("Keystoned quad's position: " + keystonedQuad.transform.position.x);
 			Debug.Log ("Grid position: " + _gridParent.transform.position.x);
-//			xOffset = keystonedQuad.transform.position.x - _gridParent.transform.position.x;
-//			zOffset = keystonedQuad.transform.position.z - _gridParent.transform.position.z;
-			Debug.Log ("X offset is " + xOffset);
-			Debug.Log ("Z offset is " + zOffset);
 		}
 
 		_texture = new Texture2D (GetComponent<Renderer> ().material.mainTexture.width, 
@@ -63,36 +74,79 @@ public class Scanners : MonoBehaviour
 			yield return new WaitForSeconds (_refreshRate);
 
 			// Assign render texture from keystoned quad texture copy & copy it to a Texture2D
-			Texture2D hitTex = assignRenderTexture();
+			assignRenderTexture();
 
 			// Assign scanner colors
-			for (int i = 0; i < _numOfScannersX; i++) {
-				for (int j = 0; j < _numOfScannersY; j++) {
-					if (Physics.Raycast (scannersList [i, j].transform.position, Vector3.down, out hit, 6)) {
-						// Get local tex coords w.r.t. triangle
+			for (int i = 0; i < _numOfScannersX; i+=2) {
+				for (int j = 0; j < _numOfScannersY; j+=2) {
 
-						if (!hitTex) {
-							Debug.Log ("No hit texture");
-							scannersList [i, j].GetComponent<Renderer> ().material.color = Color.magenta;
-						} else {
-							int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width - xOffset);
-							int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height - zOffset); 
-							Color pixel = hitTex.GetPixel (_locX, _locY);
-							pixel = closestColor (pixel);
+					int i1 = findColor (i, j);
+					int i2 = findColor (i+1, j);
+					int i3 = findColor (i, j+1);
+					int i4 = findColor (i+1, j+1);
 
-							//paint scanner with the found color 
-							scannersList [i, j].GetComponent<Renderer> ().material.color = pixel;
-
-							if (_showRays) {
-								Debug.DrawLine (scannersList [i, j].transform.position, hit.point, pixel, 200, false);
-								Debug.Log (hit.point);
-							}
-						}
-					} else { 
-						scannersList [i, j].GetComponent<Renderer> ().material.color = Color.magenta; //paint scanner with Out of bounds  color 
+					string key = i1 + "" + i2 + "" + i3 + "" + i4;
+					if (idList.ContainsKey (key)) {
+						currentIds [i / 2, j / 2] = idList [key];
+					} else {
+						currentIds [i / 2, j / 2] = -1;
 					}
 				}
 			}
+
+			// Debugging matrix vis
+			if (debug) {
+				printMatrix ();
+			}
+		}
+	}
+
+	/// <summary>
+	/// Prints the ID matrix.
+	/// </summary>
+	private void printMatrix() {
+		string matrix = "";
+		for (int i = 0; i < _numOfScannersX / 2; i++) {
+			for (int j = 0; j < _numOfScannersY / 2; j++) {
+				matrix += currentIds [i, j] + "";
+			}
+			matrix += "\n";
+		}
+		Debug.Log (matrix);
+	}
+
+	/// <summary>
+	/// Finds the color below scanner item[i, j].
+	/// </summary>
+	/// <param name="i">The row index.</param>
+	/// <param name="j">The column index.</param>
+	private int findColor(int i, int j) {
+		if (Physics.Raycast (scannersList [i, j].transform.position, Vector3.down, out hit, 6)) {
+			// Get local tex coords w.r.t. triangle
+
+			if (!hitTex) {
+				Debug.Log ("No hit texture");
+				scannersList [i, j].GetComponent<Renderer> ().material.color = Color.magenta;
+				return -1;
+			} else {
+				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
+				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
+				Color pixel = hitTex.GetPixel (_locX, _locY);
+				int pixelID = closestColor (pixel);
+				Color currPixel = new Color(colors [pixelID].x, colors [pixelID].y, colors [pixelID].z);
+
+				//paint scanner with the found color 
+				scannersList [i, j].GetComponent<Renderer> ().material.color = currPixel;
+
+				if (_showRays) {
+					Debug.DrawLine (scannersList [i, j].transform.position, hit.point, pixel, 200, false);
+					Debug.Log (hit.point);
+				}
+				return pixelID;
+			}
+		} else { 
+			scannersList [i, j].GetComponent<Renderer> ().material.color = Color.magenta; //paint scanner with Out of bounds  color 
+			return -1;
 		}
 	}
 
@@ -100,12 +154,11 @@ public class Scanners : MonoBehaviour
 	/// Assigns the render texture to a Texture2D.
 	/// </summary>
 	/// <returns>The render texture as Texture2D.</returns>
-	private Texture2D assignRenderTexture() {
+	private void assignRenderTexture() {
 		RenderTexture rt = GameObject.Find ("KeystonedTextureQuad").transform.GetComponent<Renderer> ().material.mainTexture as RenderTexture;
 		RenderTexture.active = rt;
-		Texture2D hitTex = new Texture2D (rt.width, rt.height, TextureFormat.RGB24, false);
+		hitTex = new Texture2D (rt.width, rt.height, TextureFormat.RGB24, false);
 		hitTex.ReadPixels( new Rect(0, 0, rt.width, rt.height), 0, 0);
-		return hitTex;
 	}
 
 	/// <summary>
@@ -124,23 +177,22 @@ public class Scanners : MonoBehaviour
 	/// <summary>
 	/// Finds the closest color to the given scan colors.
 	/// </summary>
-	/// <returns>The closest color found.</returns>
+	/// <returns>The closest color's index in the colors array.</returns>
 	/// <param name="pixel">Pixel.</param>
-	private Color closestColor(Color pixel) {
+	private int closestColor(Color pixel) {
 		Vector3 currPixel = new Vector3 (pixel.r, pixel.g, pixel.b);
 		float minDistance = 1000;
-		Vector3 minColor = new Vector3 (0f, 0f, 0f);
+		int minColor = -1;
 
 		for (int i = 0; i < colors.Count (); i++) {
 			float currDistance = Vector3.Distance (colors [i], currPixel);
 			if (currDistance < minDistance) {
 				minDistance = currDistance;
-				minColor = colors [i];
+				minColor = i;
 			}
 		}
-
-		Color closestColor = new Color (minColor.x, minColor.y, minColor.z);
-		return closestColor;
+			
+		return minColor;
 	}
 
 	/// <summary>
@@ -159,7 +211,6 @@ public class Scanners : MonoBehaviour
 				scannersList[x, y] = this._scanner;
 			}
 		}
-		//scannersList = scannersList.OrderBy (i => i.name).ToList ();
 	}
 
 
