@@ -85,6 +85,7 @@ public class Scanners : MonoBehaviour
 					int i3 = findColor (i, j+1);
 					int i4 = findColor (i+1, j+1);
 
+					// Find ID
 					string key = i1 + "" + i2 + "" + i3 + "" + i4;
 					if (idList.ContainsKey (key)) {
 						currentIds [i / 2, j / 2] = idList [key];
