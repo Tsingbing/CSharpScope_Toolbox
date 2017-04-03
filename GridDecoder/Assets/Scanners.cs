@@ -32,6 +32,8 @@ public class Scanners : MonoBehaviour
 	public bool refresh = false;
 	public bool debug = true;
 
+	public int _gridSize = 2;
+
 	// red, black, white, gray
 	private Vector3[] colors = new Vector3[] { new Vector3(1f, 0f, 0f), new Vector3(0f, 0f, 0f), new Vector3(1f, 1f, 1f), new Vector3(0.5f, 0.5f, 0.5f)};
 	private Texture2D hitTex;
@@ -49,7 +51,7 @@ public class Scanners : MonoBehaviour
 	IEnumerator Start ()
 	{
 		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
-		currentIds = new int[_numOfScannersX / 2, _numOfScannersY / 2];
+		currentIds = new int[_numOfScannersX / _gridSize, _numOfScannersY / _gridSize];
 		scannersMaker ();
 
 		// Find copy mesh with RenderTexture
@@ -77,20 +79,20 @@ public class Scanners : MonoBehaviour
 			assignRenderTexture();
 
 			// Assign scanner colors
-			for (int i = 0; i < _numOfScannersX; i+=2) {
-				for (int j = 0; j < _numOfScannersY; j+=2) {
+			for (int i = 0; i < _numOfScannersX; i+=_gridSize) {
+				for (int j = 0; j < _numOfScannersY; j+=_gridSize) {
+					string key = "";
 
-					int i1 = findColor (i, j);
-					int i2 = findColor (i+1, j);
-					int i3 = findColor (i, j+1);
-					int i4 = findColor (i+1, j+1);
+					for (int k = 0;  k < _gridSize; k++) {
+						for (int m = 0; m < _gridSize; m++) {
+							key += findColor (i + k, j + m); 
+						}
+					}
 
-					// Find ID
-					string key = i1 + "" + i2 + "" + i3 + "" + i4;
 					if (idList.ContainsKey (key)) {
-						currentIds [i / 2, j / 2] = idList [key];
+						currentIds [i / _gridSize, j / _gridSize] = idList [key];
 					} else {
-						currentIds [i / 2, j / 2] = -1;
+						currentIds [i / _gridSize, j / _gridSize] = -1;
 					}
 				}
 			}
