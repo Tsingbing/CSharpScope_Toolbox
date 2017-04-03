@@ -107,8 +107,13 @@ public class Scanners : MonoBehaviour
 	/// </summary>
 	private void printMatrix() {
 		string matrix = "";
-		for (int i = 0; i < _numOfScannersX / 2; i++) {
-			for (int j = 0; j < _numOfScannersY / 2; j++) {
+
+		if ((int)(currentIds.Length) <= 1) {
+			Debug.Log ("Empty dictionary.");
+			return;
+		}
+		for (int i = 0; i < currentIds.GetLength(0); i++) {
+			for (int j = 0; j < currentIds.GetLength(1); j++) {
 				matrix += currentIds [i, j] + "";
 			}
 			matrix += "\n";
