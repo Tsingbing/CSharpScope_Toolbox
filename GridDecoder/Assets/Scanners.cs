@@ -112,13 +112,21 @@ public class Scanners : MonoBehaviour
 							for (int m = 0; m < _gridSize; m++) {
 								key += findColor (i + k, j + m); 
 							}
-						}
+						} 
 
 						Debug.Log (key);
 
 						if (idList.ContainsKey (key)) {
 							currentIds [i / _gridSize, j / _gridSize] = (int)idList [key];
-						} else {
+						} else { // check rotation independence
+							foreach(string idKey in idList.Keys) {
+								key += key;
+								if (key.Contains (idKey)) {
+									Debug.Log (idKey);
+									currentIds [i / _gridSize, j / _gridSize] = (int)idList [idKey];
+									break;
+								}
+							}
 							currentIds [i / _gridSize, j / _gridSize] = -1;
 						}
 					}
@@ -138,7 +146,7 @@ public class Scanners : MonoBehaviour
 		sampleCubes[0] = GameObject.Find (colorRedName);
 		sampleCubes[1] = GameObject.Find (colorBlackName);
 		sampleCubes[2] = GameObject.Find (colorWhiteName);
-		sampleCubes [3] = GameObject.Find (colorGrayName);
+		sampleCubes[3] = GameObject.Find (colorGrayName);
 
 		for (int i = 0; i < sampleCubes.Length; i++) {
 			if (setup) { 
@@ -153,7 +161,6 @@ public class Scanners : MonoBehaviour
 				sampledColors[i] =  new Vector3 (pixel.r, pixel.g, pixel.b);
 			}
 		}
-
 	}
 
 
