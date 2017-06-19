@@ -35,16 +35,25 @@ public class Scanners : MonoBehaviour
 	public int _gridSize = 2;
 
 	// red, black, white, gray
-	private Vector3[] colors = new Vector3[] { new Vector3(1f, 0f, 0f), new Vector3(0f, 0f, 0f), new Vector3(1f, 1f, 1f), new Vector3(0.5f, 0.5f, 0.5f)};
+	// 0 - white
+	// 1 - black
+	// 2 - red
+	// 3 - unknown
+
+	private Vector3[] colors = new Vector3[] { new Vector3(1f, 1f, 1f), new Vector3(0f, 0f, 0f), new Vector3(1f, 0f, 0f), new Vector3(0.5f, 0.5f, 0.5f)};
 	private Texture2D hitTex;
-	private Dictionary<string, int> idList = new Dictionary<string, int>
+
+	enum Brick { RL = 0, RM, RS, OL, OM, OS, ROAD };
+
+	private Dictionary<string, Brick> idList = new Dictionary<string, Brick>
 	{
-		{ "1202", 0 },
-		{ "0101", 1 }, 
-		{ "1111", 3 },
-		{ "2222", 4 }, 
-		{ "1000", 5 },
-		{ "0111", 6 }, 
+		{ "2000", Brick.RL },
+		{ "2010", Brick.RM }, 
+		{ "2001", Brick.RS },
+		{ "2100", Brick.OL }, 
+		{ "2011", Brick.OM },
+		{ "2110", Brick.OS },
+		{ "2101", Brick.ROAD }, 
 
 	};
 
@@ -89,8 +98,10 @@ public class Scanners : MonoBehaviour
 						}
 					}
 
+					Debug.Log (key);
+
 					if (idList.ContainsKey (key)) {
-						currentIds [i / _gridSize, j / _gridSize] = idList [key];
+						currentIds [i / _gridSize, j / _gridSize] = (int) idList [key];
 					} else {
 						currentIds [i / _gridSize, j / _gridSize] = -1;
 					}
@@ -213,7 +224,7 @@ public class Scanners : MonoBehaviour
 				_scanner = GameObject.CreatePrimitive (PrimitiveType.Cube);
 				_scanner.name = "grid_" + y + _numOfScannersX * x;
 				_scanner.transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale);  
-				_scanner.transform.position = new Vector3 (x * _scannerScale * 2, 25, y * _scannerScale * 2);
+				_scanner.transform.position = new Vector3 (x * _scannerScale * 2, GameObject.Find ("KeystonedTextureQuad").transform.position.y + 0.1f, y * _scannerScale * 2);
 				_scanner.transform.Rotate (90, 0, 0); 
 				_scanner.transform.parent = _gridParent.transform;
 				scannersList[x, y] = this._scanner;

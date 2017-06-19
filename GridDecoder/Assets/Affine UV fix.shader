@@ -1,4 +1,6 @@
-﻿
+﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
+
 
 Shader "Custom/Affine UV fix Cg" {
  
@@ -33,7 +35,7 @@ Shader "Custom/Affine UV fix Cg" {
         vertexOutput vert(vertexInput input)
         {
             vertexOutput output;
-            output.pos = mul(UNITY_MATRIX_MVP,  input.vertex);
+            output.pos = UnityObjectToClipPos(input.vertex);
          
             output.uv = input.texcoord;
             output.uv2  = input.texcoord1 ;
