@@ -30,17 +30,27 @@ public class Scanners : MonoBehaviour
 	public float xOffset = 0;
 	public float zOffset = 0;
 	public bool refresh = false;
-	public bool debug = true;
+	public bool _debug = true;
+	public bool _isCalibrating;
+	public int _gridSize = 2; // i.e. 2x2 reading for one cell
 
-	public int _gridSize = 2;
+	private bool setup = true;
+
+	// Color calibration
+	GameObject[] sampleCubes = new GameObject[4];
+	private string colorRedName = "Sample red";
+	private string colorBlackName = "Sample black";
+	private string colorWhiteName = "Sample white";
+	private string colorGrayName = "Sample gray";
+	private string colorTexturedQuadName = "KeystonedTextureQuad";
 
 	// red, black, white, gray
 	// 0 - white
 	// 1 - black
 	// 2 - red
-	// 3 - unknown
+	// 3 - unknown / gray
 
-	private Vector3[] colors = new Vector3[] { new Vector3(1f, 1f, 1f), new Vector3(0f, 0f, 0f), new Vector3(1f, 0f, 0f), new Vector3(0.5f, 0.5f, 0.5f)};
+	private Vector3[] sampledColors = new Vector3[4];
 	private Texture2D hitTex;
 
 	enum Brick { RL = 0, RM, RS, OL, OM, OS, ROAD };
@@ -59,12 +69,15 @@ public class Scanners : MonoBehaviour
 
 	IEnumerator Start ()
 	{
+		if (setup == false) {
+			setup = true;
+		}
 		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
 		currentIds = new int[_numOfScannersX / _gridSize, _numOfScannersY / _gridSize];
 		scannersMaker ();
 
 		// Find copy mesh with RenderTexture
-		keystonedQuad = GameObject.Find ("KeystonedTextureQuad");
+		keystonedQuad = GameObject.Find (colorTexturedQuadName);
 		if (!keystonedQuad) {
 			Debug.Log ("Keystoned quad not found.");
 		}
@@ -87,33 +100,62 @@ public class Scanners : MonoBehaviour
 			// Assign render texture from keystoned quad texture copy & copy it to a Texture2D
 			assignRenderTexture();
 
-			// Assign scanner colors
-			for (int i = 0; i < _numOfScannersX; i+=_gridSize) {
-				for (int j = 0; j < _numOfScannersY; j+=_gridSize) {
-					string key = "";
+			if (_isCalibrating) {
+				calibrateColors ();
+			} else {
+				// Assign scanner colors
+				for (int i = 0; i < _numOfScannersX; i += _gridSize) {
+					for (int j = 0; j < _numOfScannersY; j += _gridSize) {
+						string key = "";
 
-					for (int k = 0;  k < _gridSize; k++) {
-						for (int m = 0; m < _gridSize; m++) {
-							key += findColor (i + k, j + m); 
+						for (int k = 0; k < _gridSize; k++) {
+							for (int m = 0; m < _gridSize; m++) {
+								key += findColor (i + k, j + m); 
+							}
+						}
+
+						Debug.Log (key);
+
+						if (idList.ContainsKey (key)) {
+							currentIds [i / _gridSize, j / _gridSize] = (int)idList [key];
+						} else {
+							currentIds [i / _gridSize, j / _gridSize] = -1;
 						}
 					}
-
-					Debug.Log (key);
-
-					if (idList.ContainsKey (key)) {
-						currentIds [i / _gridSize, j / _gridSize] = (int) idList [key];
-					} else {
-						currentIds [i / _gridSize, j / _gridSize] = -1;
-					}
 				}
-			}
 
-			// Debugging matrix vis
-			if (debug) {
-				printMatrix ();
+				// Debugging matrix vis
+				if (_debug) {
+					printMatrix ();
+				}
+				if (setup)
+					setup = false;
 			}
 		}
 	}
+
+	private void calibrateColors() {
+		sampleCubes[0] = GameObject.Find (colorRedName);
+		sampleCubes[1] = GameObject.Find (colorBlackName);
+		sampleCubes[2] = GameObject.Find (colorWhiteName);
+		sampleCubes [3] = GameObject.Find (colorGrayName);
+
+		for (int i = 0; i < sampleCubes.Length; i++) {
+			if (setup) { 
+				sampleCubes [i].transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale); 
+				sampleCubes [i].transform.position = new Vector3(sampleCubes [i].transform.position.x, keystonedQuad.transform.position.y + 0.2f, sampleCubes [i].transform.position.z);
+			}
+			if (Physics.Raycast (sampleCubes[i].transform.position, Vector3.down, out hit, 6)) {
+				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
+				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
+				Color pixel = hitTex.GetPixel (_locX, _locY);
+				sampleCubes [i].GetComponent<Renderer> ().material.color = pixel;
+				sampledColors[i] =  new Vector3 (pixel.r, pixel.g, pixel.b);
+			}
+		}
+
+	}
+
 
 	/// <summary>
 	/// Prints the ID matrix.
@@ -152,7 +194,7 @@ public class Scanners : MonoBehaviour
 				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
 				Color pixel = hitTex.GetPixel (_locX, _locY);
 				int pixelID = closestColor (pixel);
-				Color currPixel = new Color(colors [pixelID].x, colors [pixelID].y, colors [pixelID].z);
+				Color currPixel = new Color(sampledColors [pixelID].x, sampledColors [pixelID].y, sampledColors [pixelID].z);
 
 				//paint scanner with the found color 
 				scannersList [i, j].GetComponent<Renderer> ().material.color = currPixel;
@@ -174,7 +216,7 @@ public class Scanners : MonoBehaviour
 	/// </summary>
 	/// <returns>The render texture as Texture2D.</returns>
 	private void assignRenderTexture() {
-		RenderTexture rt = GameObject.Find ("KeystonedTextureQuad").transform.GetComponent<Renderer> ().material.mainTexture as RenderTexture;
+		RenderTexture rt = GameObject.Find (colorTexturedQuadName).transform.GetComponent<Renderer> ().material.mainTexture as RenderTexture;
 		RenderTexture.active = rt;
 		hitTex = new Texture2D (rt.width, rt.height, TextureFormat.RGB24, false);
 		hitTex.ReadPixels( new Rect(0, 0, rt.width, rt.height), 0, 0);
@@ -203,8 +245,8 @@ public class Scanners : MonoBehaviour
 		float minDistance = 1000;
 		int minColor = -1;
 
-		for (int i = 0; i < colors.Count (); i++) {
-			float currDistance = Vector3.Distance (colors [i], currPixel);
+		for (int i = 0; i < sampledColors.Count (); i++) {
+			float currDistance = Vector3.Distance (sampledColors [i], currPixel);
 			if (currDistance < minDistance) {
 				minDistance = currDistance;
 				minColor = i;
@@ -224,7 +266,7 @@ public class Scanners : MonoBehaviour
 				_scanner = GameObject.CreatePrimitive (PrimitiveType.Cube);
 				_scanner.name = "grid_" + y + _numOfScannersX * x;
 				_scanner.transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale);  
-				_scanner.transform.position = new Vector3 (x * _scannerScale * 2, GameObject.Find ("KeystonedTextureQuad").transform.position.y + 0.1f, y * _scannerScale * 2);
+				_scanner.transform.position = new Vector3 (x * _scannerScale * 2, GameObject.Find (colorTexturedQuadName).transform.position.y + 0.1f, y * _scannerScale * 2);
 				_scanner.transform.Rotate (90, 0, 0); 
 				_scanner.transform.parent = _gridParent.transform;
 				scannersList[x, y] = this._scanner;
