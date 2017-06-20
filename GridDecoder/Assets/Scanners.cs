@@ -53,7 +53,7 @@ public class Scanners : MonoBehaviour
 	private Vector3[] sampledColors = new Vector3[4];
 	private Texture2D hitTex;
 
-	enum Brick { RL = 0, RM, RS, OL, OM, OS, ROAD };
+	enum Brick { RL = 0, RM = 1, RS = 2, OL = 3, OM = 4, OS = 5, ROAD = 6 };
 
 	private Dictionary<string, Brick> idList = new Dictionary<string, Brick>
 	{
@@ -114,20 +114,23 @@ public class Scanners : MonoBehaviour
 							}
 						} 
 
-						Debug.Log (key);
-
+						// keys read counterclockwise
+						key = new string(key.ToCharArray().Reverse().ToArray());
+							
 						if (idList.ContainsKey (key)) {
 							currentIds [i / _gridSize, j / _gridSize] = (int)idList [key];
 						} else { // check rotation independence
+							bool isRotation = false;
+							string keyConcat = key + key;
 							foreach(string idKey in idList.Keys) {
-								key += key;
-								if (key.Contains (idKey)) {
-									Debug.Log (idKey);
+								if (keyConcat.Contains (idKey)) {
 									currentIds [i / _gridSize, j / _gridSize] = (int)idList [idKey];
+									isRotation = true;
 									break;
 								}
 							}
-							currentIds [i / _gridSize, j / _gridSize] = -1;
+							if (!isRotation)
+								currentIds [i / _gridSize, j / _gridSize] = -1;
 						}
 					}
 				}
@@ -143,9 +146,9 @@ public class Scanners : MonoBehaviour
 	}
 
 	private void calibrateColors() {
-		sampleCubes[0] = GameObject.Find (colorRedName);
+		sampleCubes[0] = GameObject.Find (colorWhiteName);
 		sampleCubes[1] = GameObject.Find (colorBlackName);
-		sampleCubes[2] = GameObject.Find (colorWhiteName);
+		sampleCubes[2] = GameObject.Find (colorRedName);
 		sampleCubes[3] = GameObject.Find (colorGrayName);
 
 		for (int i = 0; i < sampleCubes.Length; i++) {
@@ -249,11 +252,11 @@ public class Scanners : MonoBehaviour
 	/// <param name="pixel">Pixel.</param>
 	private int closestColor(Color pixel) {
 		Vector3 currPixel = new Vector3 (pixel.r, pixel.g, pixel.b);
-		float minDistance = 1000;
+		double minDistance = Double.PositiveInfinity;
 		int minColor = -1;
 
-		for (int i = 0; i < sampledColors.Count (); i++) {
-			float currDistance = Vector3.Distance (sampledColors [i], currPixel);
+		for (int i = 0; i < sampledColors.Length; i++) {
+			double currDistance = Vector3.Distance (sampledColors [i], currPixel);
 			if (currDistance < minDistance) {
 				minDistance = currDistance;
 				minColor = i;
