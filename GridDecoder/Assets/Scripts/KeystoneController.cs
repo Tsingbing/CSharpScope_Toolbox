@@ -5,6 +5,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
+/// <summary>
+/// Keystone settings (loaded from JSON).
+/// </summary>
+[System.Serializable]
 public class KeystoneSettings {
 	
 	// Quad control variables
@@ -26,16 +30,20 @@ public class KeystoneController : MonoBehaviour
 	public Vector3[] _vertices;
 	private GameObject[] _corners;
 
-	public string _settingsFileName = "keystoneSettings.json";
+	public string _settingsFileName = "_keystoneSettings.json";
 
 	public bool _useKeystone = true;
 	public bool _debug = false;
 
 	private float speed = 0.5f;
 
+	/// <summary>
+	/// Start this instance.
+	/// </summary>
 	void Start ()
 	{
 		settings = new KeystoneSettings(_vertices, _corners);
+
 		Destroy (this.GetComponent <MeshCollider> ()); //destroy so we can make one in dynamically 
 		transform.gameObject.AddComponent <MeshCollider> (); //add new collider 
 	
@@ -45,6 +53,9 @@ public class KeystoneController : MonoBehaviour
 		cornerMaker (); //make the corners for visual controls 
 	}
 
+	/// <summary>
+	/// Update this instance.
+	/// </summary>
 	void Update ()
 	{
 		Mesh mesh = GetComponent<MeshFilter> ().mesh;
@@ -92,7 +103,6 @@ public class KeystoneController : MonoBehaviour
 
 	private void onOffObjects (bool visible)
 	{
-
 		for (int i = 0; i < settings.vertices.Length; i++) {
 			GameObject sphere = settings.corners [i];
 			sphere.transform.position = transform.TransformPoint (settings.vertices [i]);
@@ -100,6 +110,9 @@ public class KeystoneController : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Raises the scene control event.
+	/// </summary>
 	private void OnSceneControl ()
 	{
 		if (!_useKeystone)
@@ -127,8 +140,9 @@ public class KeystoneController : MonoBehaviour
 		if (_debug)
 			Debug.Log ("Saving settings.");
 
-		if (!writeJSON ())
+		if (!writeJSON ()) {
 			return false;
+		}
 		return true;
 	}
 
@@ -186,7 +200,7 @@ public class KeystoneController : MonoBehaviour
 	/// <returns><c>true</c>, if JSO was loaded, <c>false</c> otherwise.</returns>
 	/// <param name="fileName">File name.</param>
 	public bool loadJSON() {
-		string filePath = Path.Combine(Application.streamingAssetsPath, _settingsFileName);
+		string filePath = Application.streamingAssetsPath + _settingsFileName;
 
 		if (File.Exists(filePath))
 		{
@@ -212,7 +226,7 @@ public class KeystoneController : MonoBehaviour
 	public bool writeJSON() {
 		string dataAsJson = JsonUtility.ToJson (settings);
 
-		string filePath = Application.dataPath + _settingsFileName;
+		string filePath = Application.streamingAssetsPath + _settingsFileName;
 		File.WriteAllText (filePath, dataAsJson);
 
 		return true;
