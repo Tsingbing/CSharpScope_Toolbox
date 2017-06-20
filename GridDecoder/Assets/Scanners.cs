@@ -69,9 +69,10 @@ public class Scanners : MonoBehaviour
 
 	IEnumerator Start ()
 	{
-		if (setup == false) {
+		if (!setup) {
 			setup = true;
 		}
+
 		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
 		currentIds = new int[_numOfScannersX / _gridSize, _numOfScannersY / _gridSize];
 		scannersMaker ();
@@ -102,38 +103,10 @@ public class Scanners : MonoBehaviour
 
 			if (_isCalibrating) {
 				calibrateColors ();
-			} else {
+			} 
+			else {
 				// Assign scanner colors
-				for (int i = 0; i < _numOfScannersX; i += _gridSize) {
-					for (int j = 0; j < _numOfScannersY; j += _gridSize) {
-						string key = "";
-
-						for (int k = 0; k < _gridSize; k++) {
-							for (int m = 0; m < _gridSize; m++) {
-								key += findColor (i + k, j + m); 
-							}
-						} 
-
-						// keys read counterclockwise
-						key = new string(key.ToCharArray().Reverse().ToArray());
-							
-						if (idList.ContainsKey (key)) {
-							currentIds [i / _gridSize, j / _gridSize] = (int)idList [key];
-						} else { // check rotation independence
-							bool isRotation = false;
-							string keyConcat = key + key;
-							foreach(string idKey in idList.Keys) {
-								if (keyConcat.Contains (idKey)) {
-									currentIds [i / _gridSize, j / _gridSize] = (int)idList [idKey];
-									isRotation = true;
-									break;
-								}
-							}
-							if (!isRotation)
-								currentIds [i / _gridSize, j / _gridSize] = -1;
-						}
-					}
-				}
+				scanColors();
 
 				// Debugging matrix vis
 				if (_debug) {
@@ -145,6 +118,9 @@ public class Scanners : MonoBehaviour
 		}
 	}
 
+	/// <summary>
+	/// Calibrates the colors based on sample points.
+	/// </summary>
 	private void calibrateColors() {
 		sampleCubes[0] = GameObject.Find (colorWhiteName);
 		sampleCubes[1] = GameObject.Find (colorBlackName);
@@ -165,6 +141,43 @@ public class Scanners : MonoBehaviour
 			}
 		}
 	}
+
+	/// <summary>
+	/// Scans the colors.
+	/// </summary>
+	private void scanColors() {
+		for (int i = 0; i < _numOfScannersX; i += _gridSize) {
+			for (int j = 0; j < _numOfScannersY; j += _gridSize) {
+				string key = "";
+
+				for (int k = 0; k < _gridSize; k++) {
+					for (int m = 0; m < _gridSize; m++) {
+						key += findColor (i + k, j + m); 
+					}
+				} 
+
+				// keys read counterclockwise
+				key = new string(key.ToCharArray().Reverse().ToArray());
+
+				if (idList.ContainsKey (key)) {
+					currentIds [i / _gridSize, j / _gridSize] = (int)idList [key];
+				} else { // check rotation independence
+					bool isRotation = false;
+					string keyConcat = key + key;
+					foreach(string idKey in idList.Keys) {
+						if (keyConcat.Contains (idKey)) {
+							currentIds [i / _gridSize, j / _gridSize] = (int)idList [idKey];
+							isRotation = true;
+							break;
+						}
+					}
+					if (!isRotation)
+						currentIds [i / _gridSize, j / _gridSize] = -1;
+				}
+			}
+		}
+	}
+
 
 
 	/// <summary>
@@ -262,7 +275,6 @@ public class Scanners : MonoBehaviour
 				minColor = i;
 			}
 		}
-			
 		return minColor;
 	}
 
@@ -283,6 +295,4 @@ public class Scanners : MonoBehaviour
 			}
 		}
 	}
-
-
 }
