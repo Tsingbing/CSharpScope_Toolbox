@@ -35,7 +35,6 @@ public class KeystoneController : MonoBehaviour
 
 	void Start ()
 	{
-
 		settings = new KeystoneSettings(_vertices, _corners);
 		Destroy (this.GetComponent <MeshCollider> ()); //destroy so we can make one in dynamically 
 		transform.gameObject.AddComponent <MeshCollider> (); //add new collider 

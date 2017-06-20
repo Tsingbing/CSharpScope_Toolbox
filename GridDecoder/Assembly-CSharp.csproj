@@ -46,9 +46,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-     <Compile Include="Assets\Scanners.cs" />
-     <Compile Include="Assets\keyStone.cs" />
-     <Compile Include="Assets\webcam.cs" />
+     <Compile Include="Assets\Scripts\JsonParser.cs" />
+     <Compile Include="Assets\Scripts\KeystoneController.cs" />
+     <Compile Include="Assets\Scripts\Scanners.cs" />
+     <Compile Include="Assets\Scripts\Webcam.cs" />
      <None Include="Assets\Affine UV fix.shader" />
  <Reference Include="UnityEngine.UI">
  <HintPath>/Applications/Unity/Unity.app/Contents/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
