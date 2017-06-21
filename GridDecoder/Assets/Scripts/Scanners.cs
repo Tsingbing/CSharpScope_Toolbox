@@ -34,7 +34,6 @@ public class Scanners : MonoBehaviour
 	public bool _showRays = false;
 	public float xOffset = 0;
 	public float zOffset = 0;
-	public bool refresh = false;
 	public bool _debug = true;
 	public bool _isCalibrating;
 	public int _gridSize = 2; // i.e. 2x2 reading for one cell
@@ -43,7 +42,7 @@ public class Scanners : MonoBehaviour
 
 	// Color calibration
 	ColorSettings colorSettings = new ColorSettings();
-	GameObject[] sampleCubes;
+	GameObject[] sampleCubes = new GameObject[4];
 	private string colorRedName = "Sample red";
 	private string colorBlackName = "Sample black";
 	private string colorWhiteName = "Sample white";
@@ -79,8 +78,7 @@ public class Scanners : MonoBehaviour
 		EventManager.StartListening ("reload", OnReload);
 	
 		while (true) {
-			if (!refresh)
-				yield return new WaitForEndOfFrame ();
+			yield return new WaitForEndOfFrame ();
 			SetTexture ();
 			yield return new WaitForSeconds (_refreshRate);
 
@@ -115,6 +113,7 @@ public class Scanners : MonoBehaviour
 	private void initVariables() {
 		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
 		currentIds = new int[_numOfScannersX / _gridSize, _numOfScannersY / _gridSize];
+		sampleCubes = new GameObject[4];
 		MakeScanners ();
 
 		// Find copy mesh with RenderTexture
@@ -130,11 +129,7 @@ public class Scanners : MonoBehaviour
 	/// Calibrates the colors based on sample points.
 	/// </summary>
 	private void CalibrateColors() {
-		sampleCubes = new GameObject[4];
-		sampleCubes[0] = GameObject.Find (colorWhiteName);
-		sampleCubes[1] = GameObject.Find (colorBlackName);
-		sampleCubes[2] = GameObject.Find (colorRedName);
-		sampleCubes[3] = GameObject.Find (colorGrayName);
+		SetSampleObjects ();
 
 		for (int i = 0; i < sampleCubes.Length; i++) {
 			if (setup) { 
@@ -149,6 +144,13 @@ public class Scanners : MonoBehaviour
 				sampledColors[i] =  new Vector3 (pixel.r, pixel.g, pixel.b);
 			}
 		}
+	}
+
+	private void SetSampleObjects() {
+		sampleCubes[0] = GameObject.Find (colorWhiteName);
+		sampleCubes[1] = GameObject.Find (colorBlackName);
+		sampleCubes[2] = GameObject.Find (colorRedName);
+		sampleCubes[3] = GameObject.Find (colorGrayName);
 	}
 
 	/// <summary>
@@ -318,7 +320,7 @@ public class Scanners : MonoBehaviour
 
 		string dataAsJson = JsonParser.loadJSON (_colorSettingsFileName, _debug);
 		colorSettings = JsonUtility.FromJson<ColorSettings>(dataAsJson);
-
+		
 		for (int i = 0; i < sampleCubes.Length; i++) {
 			sampleCubes [i].transform.position = colorSettings.position [i];
 			sampleCubes[i].transform.localScale = new Vector3 (colorSettings.scannerScale, colorSettings.scannerScale, colorSettings.scannerScale);
@@ -347,7 +349,7 @@ public class Scanners : MonoBehaviour
 	/// </summary>
 	private void onKeyPressed ()
 	{
-		if (Input.GetKey (KeyCode.S)) {
+		if (Input.GetKey (KeyCode.S) && _isCalibrating) {
 			Debug.Log ("Key pressed to save color settings.");
 			SaveSamplers ();
 		} else if (Input.GetKey (KeyCode.L)) {
@@ -362,6 +364,7 @@ public class Scanners : MonoBehaviour
 	void OnReload() {
 		Debug.Log ("Color config was reloaded!");
 
+		SetSampleObjects ();
 		LoadSamplers ();
 	}
 
