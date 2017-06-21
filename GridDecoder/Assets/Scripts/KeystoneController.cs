@@ -14,7 +14,6 @@ public class KeystoneSettings {
 	// Quad control variables
 	public Vector3[] vertices = new Vector3[4];
 	//public GameObject[] corners;
-	public int selectedCorner;
 
 	public KeystoneSettings(Vector3[] newVertices) {
 		this.vertices = newVertices;
@@ -29,6 +28,7 @@ public class KeystoneController : MonoBehaviour
 
 	public Vector3[] _vertices;
 	private GameObject[] _corners;
+	public int selectedCorner;
 
 	public string _settingsFileName = "_keystoneSettings.json";
 
@@ -59,15 +59,15 @@ public class KeystoneController : MonoBehaviour
 	void Update ()
 	{
 		Mesh mesh = GetComponent<MeshFilter> ().mesh;
-		mesh.vertices = settings.vertices;
+		mesh.vertices = _vertices;
 		 
 		// Zero out the left and bottom edges, 
 		// leaving a right trapezoid with two sides on the axes and a vertex at the origin.
 		var shiftedPositions = new Vector2[] {
 			Vector2.zero,
-			new Vector2 (0, settings.vertices [1].y - settings.vertices [0].y),
-			new Vector2 (settings.vertices [2].x - settings.vertices [1].x, settings.vertices [2].y - settings.vertices [3].y),
-			new Vector2 (settings.vertices [3].x - settings.vertices [0].x, 0)
+			new Vector2 (0, _vertices [1].y - _vertices [0].y),
+			new Vector2 (_vertices [2].x - _vertices [1].x, _vertices [2].y - _vertices [3].y),
+			new Vector2 (_vertices [3].x - _vertices [0].x, 0)
 		};
 		mesh.uv = shiftedPositions;
 
@@ -90,11 +90,11 @@ public class KeystoneController : MonoBehaviour
 
 	private void cornerMaker ()
 	{
-		_corners = new GameObject[settings.vertices.Length]; // make corners spheres 
-		for (int i = 0; i < settings.vertices.Length; i++) {
+		_corners = new GameObject[_vertices.Length]; // make corners spheres 
+		for (int i = 0; i < _vertices.Length; i++) {
 			var obj = GameObject.CreatePrimitive (PrimitiveType.Sphere);
 			obj.transform.SetParent (transform);
-			obj.GetComponent<Renderer> ().material.color = i == settings.selectedCorner ? Color.green : Color.red;
+			obj.GetComponent<Renderer> ().material.color = i == selectedCorner ? Color.green : Color.red;
 			_corners [i] = obj;
 		}
 	}
@@ -102,9 +102,9 @@ public class KeystoneController : MonoBehaviour
 
 	private void onOffObjects (bool visible)
 	{
-		for (int i = 0; i < settings.vertices.Length; i++) {
+		for (int i = 0; i < _vertices.Length; i++) {
 			GameObject sphere = _corners [i];
-			sphere.transform.position = transform.TransformPoint (settings.vertices [i]);
+			sphere.transform.position = transform.TransformPoint (_vertices [i]);
 			sphere.SetActive (visible);
 		}
 	}
@@ -137,11 +137,13 @@ public class KeystoneController : MonoBehaviour
 	/// <returns><c>true</c>, if settings were saved, <c>false</c> otherwise.</returns>
 	private bool saveSettings() {
 		if (_debug)
-			Debug.Log ("Saving settings.");
+			Debug.Log ("Saving keystone settings.");
 
-		if (!writeJSON ()) {
-			return false;
-		}
+		settings.vertices = _vertices;
+
+		string dataAsJson = JsonUtility.ToJson (settings);
+		JsonParser.writeJSON (_settingsFileName, dataAsJson);
+
 		return true;
 	}
 
@@ -151,10 +153,12 @@ public class KeystoneController : MonoBehaviour
 	/// <returns><c>true</c>, if settings were loaded, <c>false</c> otherwise.</returns>
 	private bool loadSettings() {
 		if (_debug)
-			Debug.Log ("Loading settings.");
+			Debug.Log ("Loading keystone settings.");
 
-		if (!loadJSON ())
-			return false;
+		string dataAsJson = JsonParser.loadJSON (_settingsFileName, _debug);
+		settings = JsonUtility.FromJson<KeystoneSettings>(dataAsJson);
+		_vertices = settings.vertices;
+
 		return true;
 	}
 
@@ -162,13 +166,14 @@ public class KeystoneController : MonoBehaviour
 	/// Updates the selection for each keypress event.
 	/// </summary>
 	private void updateSelection() {
-		var corner = Input.GetKeyDown ("1") ? 0 : (Input.GetKeyDown ("2") ? 1 : (Input.GetKeyDown ("3") ? 2 : (Input.GetKeyDown ("4") ? 3 : settings.selectedCorner)));
-		if (corner != settings.selectedCorner) {
-			_corners [settings.selectedCorner].GetComponent<Renderer> ().material.color = Color.red;
+		var corner = Input.GetKeyDown ("1") ? 0 : (Input.GetKeyDown ("2") ? 1 : (Input.GetKeyDown ("3") ? 2 : (Input.GetKeyDown ("4") ? 3 : selectedCorner)));
+
+		if (corner != selectedCorner) {
+			_corners [selectedCorner].GetComponent<Renderer> ().material.color = Color.red;
 			_corners [corner].GetComponent<Renderer> ().material.color = Color.green;
-			settings.selectedCorner = corner;
+			selectedCorner = corner;
 			if (_debug) 
-				Debug.Log ("Selection changed to " + settings.selectedCorner.ToString ());
+				Debug.Log ("Selection changed to " + selectedCorner.ToString ());
 		}
 
 		if (Input.GetKey (KeyCode.LeftShift))
@@ -178,7 +183,7 @@ public class KeystoneController : MonoBehaviour
 		else if (Input.GetKey (KeyCode.LeftAlt))
 			speed *= 0.01f; 
 
-		var v = settings.vertices [settings.selectedCorner];
+		var v = _vertices [selectedCorner];
 
 		if (Input.GetKeyDown (KeyCode.UpArrow))
 			v = v + speed * Vector3.up;
@@ -189,48 +194,8 @@ public class KeystoneController : MonoBehaviour
 		else if (Input.GetKeyDown (KeyCode.RightArrow))
 			v = v + speed * Vector3.right;
 
-		settings.vertices [settings.selectedCorner] = v;
+		_vertices [selectedCorner] = v;
 	}
-
-	/// <summary>
-	/// Loads a JSON file from fileName.
-	/// Following https://unity3d.com/learn/tutorials/topics/scripting/loading-game-data-json
-	/// </summary>
-	/// <returns><c>true</c>, if JSO was loaded, <c>false</c> otherwise.</returns>
-	/// <param name="fileName">File name.</param>
-	public bool loadJSON() {
-		string filePath = Application.streamingAssetsPath + _settingsFileName;
-
-		if (File.Exists(filePath))
-		{
-			// Read the json from the file into a string
-			string dataAsJson = File.ReadAllText(filePath); 
-			settings = JsonUtility.FromJson<KeystoneSettings>(dataAsJson);
-
-			if (_debug) 
-				Debug.Log("Keystone data loaded " + settings);
-			return true;
-		}
-		else
-		{
-			Debug.LogError("Cannot load game data!");
-			return false;
-		}
-	}
-
-	/// <summary>
-	/// Writes the JSON
-	/// </summary>
-	/// <returns><c>true</c>, if JSO was writed, <c>false</c> otherwise.</returns>
-	public bool writeJSON() {
-		string dataAsJson = JsonUtility.ToJson (settings);
-
-		string filePath = Application.streamingAssetsPath + _settingsFileName;
-		File.WriteAllText (filePath, dataAsJson);
-
-		return true;
-	}
-
 }
 
 

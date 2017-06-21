@@ -15,7 +15,6 @@ public class ColorSettings {
 
 public class Scanners : MonoBehaviour
 {
-
 	// webcam and scanner vars
 	public static GameObject[,] scannersList;
 	public static int[,] currentIds;
@@ -58,7 +57,6 @@ public class Scanners : MonoBehaviour
 	// 1 - black
 	// 2 - red
 	// 3 - unknown / gray
-
 	private Vector3[] sampledColors = new Vector3[4];
 	private Texture2D hitTex;
 
@@ -77,22 +75,7 @@ public class Scanners : MonoBehaviour
 
 	IEnumerator Start ()
 	{
-		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
-		currentIds = new int[_numOfScannersX / _gridSize, _numOfScannersY / _gridSize];
-		makeScanners ();
-
-		// Find copy mesh with RenderTexture
-		keystonedQuad = GameObject.Find (colorTexturedQuadName);
-		if (!keystonedQuad) {
-			Debug.Log ("Keystoned quad not found.");
-		}
-		else {
-			Debug.Log ("Keystoned quad's position: " + keystonedQuad.transform.position.x);
-			Debug.Log ("Grid position: " + _gridParent.transform.position.x);
-		}
-
-		_texture = new Texture2D (GetComponent<Renderer> ().material.mainTexture.width, 
-			GetComponent<Renderer> ().material.mainTexture.height);
+		initVariables ();
 	
 		while (true) {
 			if (!refresh)
@@ -102,7 +85,6 @@ public class Scanners : MonoBehaviour
 
 			// Assign render texture from keystoned quad texture copy & copy it to a Texture2D
 			assignRenderTexture();
-			onKeyPressed();
 
 			if (_isCalibrating) {
 				calibrateColors ();
@@ -117,6 +99,30 @@ public class Scanners : MonoBehaviour
 			if (setup)
 				setup = false;
 		}
+	}
+
+	/// <summary>
+	/// Update this instance.
+	/// </summary>
+	void Update() {
+		onKeyPressed();
+	}
+
+	/// <summary>
+	/// Initializes the variables.
+	/// </summary>
+	private void initVariables() {
+		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
+		currentIds = new int[_numOfScannersX / _gridSize, _numOfScannersY / _gridSize];
+		makeScanners ();
+
+		// Find copy mesh with RenderTexture
+		keystonedQuad = GameObject.Find (colorTexturedQuadName);
+		if (!keystonedQuad)
+			Debug.Log ("Keystoned quad not found.");
+
+		_texture = new Texture2D (GetComponent<Renderer> ().material.mainTexture.width, 
+			GetComponent<Renderer> ().material.mainTexture.height);
 	}
 
 	/// <summary>
