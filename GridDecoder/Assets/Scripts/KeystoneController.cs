@@ -13,11 +13,9 @@ public class KeystoneSettings {
 	
 	// Quad control variables
 	public Vector3[] vertices = new Vector3[4];
-	//public GameObject[] corners;
 
 	public KeystoneSettings(Vector3[] newVertices) {
 		this.vertices = newVertices;
-		//this.corners = newCorners;
 	}
 }
 
@@ -27,6 +25,7 @@ public class KeystoneController : MonoBehaviour
 	KeystoneSettings settings;
 
 	public Vector3[] _vertices;
+	private Vector3[] vertices;
 	private GameObject[] _corners;
 	public int selectedCorner;
 
@@ -41,7 +40,8 @@ public class KeystoneController : MonoBehaviour
 	/// </summary>
 	void Start ()
 	{
-		settings = new KeystoneSettings(_vertices);
+		LoadSettings ();
+		EventManager.StartListening ("reload", OnReloadKeystone);
 
 		Destroy (this.GetComponent <MeshCollider> ()); //destroy so we can make one in dynamically 
 		transform.gameObject.AddComponent <MeshCollider> (); //add new collider 
@@ -58,15 +58,15 @@ public class KeystoneController : MonoBehaviour
 	void Update ()
 	{
 		Mesh mesh = GetComponent<MeshFilter> ().mesh;
-		mesh.vertices = _vertices;
+		mesh.vertices = vertices;
 		 
 		// Zero out the left and bottom edges, 
 		// leaving a right trapezoid with two sides on the axes and a vertex at the origin.
 		var shiftedPositions = new Vector2[] {
 			Vector2.zero,
-			new Vector2 (0, _vertices [1].y - _vertices [0].y),
-			new Vector2 (_vertices [2].x - _vertices [1].x, _vertices [2].y - _vertices [3].y),
-			new Vector2 (_vertices [3].x - _vertices [0].x, 0)
+			new Vector2 (0, vertices [1].y - vertices [0].y),
+			new Vector2 (vertices [2].x - vertices [1].x, vertices [2].y - vertices [3].y),
+			new Vector2 (vertices [3].x - vertices [0].x, 0)
 		};
 		mesh.uv = shiftedPositions;
 
@@ -89,8 +89,8 @@ public class KeystoneController : MonoBehaviour
 
 	private void CornerMaker ()
 	{
-		_corners = new GameObject[_vertices.Length]; // make corners spheres 
-		for (int i = 0; i < _vertices.Length; i++) {
+		_corners = new GameObject[vertices.Length]; // make corners spheres 
+		for (int i = 0; i < vertices.Length; i++) {
 			var obj = GameObject.CreatePrimitive (PrimitiveType.Sphere);
 			obj.transform.SetParent (transform);
 			obj.GetComponent<Renderer> ().material.color = i == selectedCorner ? Color.green : Color.red;
@@ -101,9 +101,9 @@ public class KeystoneController : MonoBehaviour
 
 	private void onOffObjects (bool visible)
 	{
-		for (int i = 0; i < _vertices.Length; i++) {
+		for (int i = 0; i < vertices.Length; i++) {
 			GameObject sphere = _corners [i];
-			sphere.transform.position = transform.TransformPoint (_vertices [i]);
+			sphere.transform.position = transform.TransformPoint (vertices [i]);
 			sphere.SetActive (visible);
 		}
 	}
@@ -138,7 +138,7 @@ public class KeystoneController : MonoBehaviour
 		if (_debug)
 			Debug.Log ("Saving keystone settings.");
 
-		settings.vertices = _vertices;
+		settings.vertices = vertices;
 
 		string dataAsJson = JsonUtility.ToJson (settings);
 		JsonParser.writeJSON (_settingsFileName, dataAsJson);
@@ -155,8 +155,13 @@ public class KeystoneController : MonoBehaviour
 			Debug.Log ("Loading keystone settings.");
 
 		string dataAsJson = JsonParser.loadJSON (_settingsFileName, _debug);
-		settings = JsonUtility.FromJson<KeystoneSettings>(dataAsJson);
-		_vertices = settings.vertices;
+
+		if (dataAsJson.Length == 0)
+			settings = new KeystoneSettings (_vertices);
+		else {
+			settings = JsonUtility.FromJson<KeystoneSettings> (dataAsJson);
+			vertices = settings.vertices;
+		}
 
 		return true;
 	}
@@ -182,7 +187,7 @@ public class KeystoneController : MonoBehaviour
 		else if (Input.GetKey (KeyCode.LeftAlt))
 			speed *= 0.01f; 
 
-		var v = _vertices [selectedCorner];
+		var v = vertices [selectedCorner];
 
 		if (Input.GetKeyDown (KeyCode.UpArrow))
 			v = v + speed * Vector3.up;
@@ -193,7 +198,17 @@ public class KeystoneController : MonoBehaviour
 		else if (Input.GetKeyDown (KeyCode.RightArrow))
 			v = v + speed * Vector3.right;
 
-		_vertices [selectedCorner] = v;
+		vertices [selectedCorner] = v;
+	}
+
+
+	/// <summary>
+	/// Reloads configuration / keystone settings when the scene is refreshed.
+	/// </summary>
+	void OnReloadKeystone() {
+		Debug.Log ("Keystone config was reloaded!");
+
+		LoadSettings ();
 	}
 }
 

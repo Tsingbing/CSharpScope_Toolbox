@@ -76,6 +76,7 @@ public class Scanners : MonoBehaviour
 	IEnumerator Start ()
 	{
 		initVariables ();
+		EventManager.StartListening ("reload", OnReload);
 	
 		while (true) {
 			if (!refresh)
@@ -353,6 +354,15 @@ public class Scanners : MonoBehaviour
 			Debug.Log ("Key pressed to load color settings.");
 			LoadSamplers ();
 		}
+	}
+
+	/// <summary>
+	/// Reloads configuration / keystone settings when the scene is refreshed.
+	/// </summary>
+	void OnReload() {
+		Debug.Log ("Color config was reloaded!");
+
+		LoadSamplers ();
 	}
 
 }
