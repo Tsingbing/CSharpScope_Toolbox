@@ -12,13 +12,13 @@ using System.IO;
 public class KeystoneSettings {
 	
 	// Quad control variables
-	public Vector3[] vertices;
-	public GameObject[] corners;
+	public Vector3[] vertices = new Vector3[4];
+	//public GameObject[] corners;
 	public int selectedCorner;
 
-	public KeystoneSettings(Vector3[] newVertices, GameObject[] newCorners) {
+	public KeystoneSettings(Vector3[] newVertices) {
 		this.vertices = newVertices;
-		this.corners = newCorners;
+		//this.corners = newCorners;
 	}
 }
 
@@ -42,7 +42,7 @@ public class KeystoneController : MonoBehaviour
 	/// </summary>
 	void Start ()
 	{
-		settings = new KeystoneSettings(_vertices, _corners);
+		settings = new KeystoneSettings(_vertices);
 
 		Destroy (this.GetComponent <MeshCollider> ()); //destroy so we can make one in dynamically 
 		transform.gameObject.AddComponent <MeshCollider> (); //add new collider 
@@ -90,13 +90,12 @@ public class KeystoneController : MonoBehaviour
 
 	private void cornerMaker ()
 	{
-
-		settings.corners = new GameObject[settings.vertices.Length]; // make corners spheres 
+		_corners = new GameObject[settings.vertices.Length]; // make corners spheres 
 		for (int i = 0; i < settings.vertices.Length; i++) {
 			var obj = GameObject.CreatePrimitive (PrimitiveType.Sphere);
 			obj.transform.SetParent (transform);
 			obj.GetComponent<Renderer> ().material.color = i == settings.selectedCorner ? Color.green : Color.red;
-			settings.corners [i] = obj;
+			_corners [i] = obj;
 		}
 	}
 
@@ -104,7 +103,7 @@ public class KeystoneController : MonoBehaviour
 	private void onOffObjects (bool visible)
 	{
 		for (int i = 0; i < settings.vertices.Length; i++) {
-			GameObject sphere = settings.corners [i];
+			GameObject sphere = _corners [i];
 			sphere.transform.position = transform.TransformPoint (settings.vertices [i]);
 			sphere.SetActive (visible);
 		}
@@ -127,9 +126,9 @@ public class KeystoneController : MonoBehaviour
 		} else if (Input.GetKey (KeyCode.L)) {
 			loadSettings ();
 			return;
-		} else {
-			updateSelection ();
 		}
+
+		updateSelection ();
 	}
 
 	/// <summary>
@@ -165,8 +164,8 @@ public class KeystoneController : MonoBehaviour
 	private void updateSelection() {
 		var corner = Input.GetKeyDown ("1") ? 0 : (Input.GetKeyDown ("2") ? 1 : (Input.GetKeyDown ("3") ? 2 : (Input.GetKeyDown ("4") ? 3 : settings.selectedCorner)));
 		if (corner != settings.selectedCorner) {
-			settings.corners [settings.selectedCorner].GetComponent<Renderer> ().material.color = Color.red;
-			settings.corners [corner].GetComponent<Renderer> ().material.color = Color.green;
+			_corners [settings.selectedCorner].GetComponent<Renderer> ().material.color = Color.red;
+			_corners [corner].GetComponent<Renderer> ().material.color = Color.green;
 			settings.selectedCorner = corner;
 			if (_debug) 
 				Debug.Log ("Selection changed to " + settings.selectedCorner.ToString ());

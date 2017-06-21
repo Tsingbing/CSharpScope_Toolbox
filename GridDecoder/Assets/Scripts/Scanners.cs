@@ -6,6 +6,12 @@ using System.Collections.Generic;
 using System.Linq;
 
 
+[System.Serializable]
+public class ColorSettings {
+	// Color sample objects
+	public Vector3[] position = new Vector3[4];
+	public float scannerScale;
+}
 
 public class Scanners : MonoBehaviour
 {
@@ -37,12 +43,15 @@ public class Scanners : MonoBehaviour
 	private bool setup = true;
 
 	// Color calibration
-	GameObject[] sampleCubes = new GameObject[4];
+	ColorSettings colorSettings = new ColorSettings();
+	GameObject[] sampleCubes;
 	private string colorRedName = "Sample red";
 	private string colorBlackName = "Sample black";
 	private string colorWhiteName = "Sample white";
 	private string colorGrayName = "Sample gray";
 	private string colorTexturedQuadName = "KeystonedTextureQuad";
+
+	public string _colorSettingsFileName = "_sampleColorSettings.json";
 
 	// red, black, white, gray
 	// 0 - white
@@ -63,19 +72,14 @@ public class Scanners : MonoBehaviour
 		{ "2100", Brick.OL }, 
 		{ "2011", Brick.OM },
 		{ "2110", Brick.OS },
-		{ "2101", Brick.ROAD }, 
-
+		{ "2101", Brick.ROAD }
 	};
 
 	IEnumerator Start ()
 	{
-		if (!setup) {
-			setup = true;
-		}
-
 		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
 		currentIds = new int[_numOfScannersX / _gridSize, _numOfScannersY / _gridSize];
-		scannersMaker ();
+		makeScanners ();
 
 		// Find copy mesh with RenderTexture
 		keystonedQuad = GameObject.Find (colorTexturedQuadName);
@@ -91,15 +95,14 @@ public class Scanners : MonoBehaviour
 			GetComponent<Renderer> ().material.mainTexture.height);
 	
 		while (true) {
-
-			if (!refresh) {
+			if (!refresh)
 				yield return new WaitForEndOfFrame ();
-			}
 			setTexture ();
 			yield return new WaitForSeconds (_refreshRate);
 
 			// Assign render texture from keystoned quad texture copy & copy it to a Texture2D
 			assignRenderTexture();
+			onKeyPressed();
 
 			if (_isCalibrating) {
 				calibrateColors ();
@@ -108,13 +111,11 @@ public class Scanners : MonoBehaviour
 				// Assign scanner colors
 				scanColors();
 
-				// Debugging matrix vis
-				if (_debug) {
+				if (_debug)
 					printMatrix ();
-				}
-				if (setup)
-					setup = false;
 			}
+			if (setup)
+				setup = false;
 		}
 	}
 
@@ -122,6 +123,7 @@ public class Scanners : MonoBehaviour
 	/// Calibrates the colors based on sample points.
 	/// </summary>
 	private void calibrateColors() {
+		sampleCubes = new GameObject[4];
 		sampleCubes[0] = GameObject.Find (colorWhiteName);
 		sampleCubes[1] = GameObject.Find (colorBlackName);
 		sampleCubes[2] = GameObject.Find (colorRedName);
@@ -281,7 +283,7 @@ public class Scanners : MonoBehaviour
 	/// <summary>
 	/// Initialize scanners.
 	/// </summary>
-	private void scannersMaker ()
+	private void makeScanners ()
 	{
 		for (int x = 0; x < _numOfScannersX; x++) {
 			for (int y = 0; y < _numOfScannersY; y++) {
@@ -295,4 +297,52 @@ public class Scanners : MonoBehaviour
 			}
 		}
 	}
+
+	/// <summary>
+	/// Loads the color sampler objects from a JSON.
+	/// </summary>
+	private void loadSamplers() {
+		if (_debug)
+			Debug.Log ("Loading color sampling settings.");
+
+		string dataAsJson = JsonParser.loadJSON (_colorSettingsFileName, _debug);
+		colorSettings = JsonUtility.FromJson<ColorSettings>(dataAsJson);
+
+		for (int i = 0; i < sampleCubes.Length; i++) {
+			sampleCubes [i].transform.position = colorSettings.position [i];
+			sampleCubes[i].transform.localScale = new Vector3 (colorSettings.scannerScale, colorSettings.scannerScale, colorSettings.scannerScale);
+		}
+	}
+
+	/// <summary>
+	/// Saves the color sampler objects to a JSON.
+	/// </summary>
+	private void saveSamplers() {
+		if (_debug)
+			Debug.Log ("Saving color sampling settings.");
+
+		colorSettings.scannerScale = _scannerScale;
+
+		for (int i = 0; i < sampleCubes.Length; i++) {
+			colorSettings.position [i] = sampleCubes [i].transform.position;
+		}
+
+		string dataAsJson = JsonUtility.ToJson (colorSettings);
+		JsonParser.writeJSON (_colorSettingsFileName, dataAsJson);
+	}
+
+	/// <summary>
+	/// Raises the scene control event.
+	/// </summary>
+	private void onKeyPressed ()
+	{
+		if (Input.GetKey (KeyCode.S)) {
+			Debug.Log ("Key pressed to save color settings.");
+			saveSamplers ();
+		} else if (Input.GetKey (KeyCode.L)) {
+			Debug.Log ("Key pressed to load color settings.");
+			loadSamplers ();
+		}
+	}
+
 }
