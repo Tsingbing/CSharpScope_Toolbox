@@ -2,24 +2,50 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Webcam : MonoBehaviour {
+public class Webcam : MonoBehaviour
+{
+  	public static WebCamTexture webcamera;
 
-	// Use this for initialization
-	void Start () {
-		
-		WebCamTexture webcam = new WebCamTexture (WebCamTexture.devices [0].name); //SET up the cam
-		for (int i = 0; i < WebCamTexture.devices.Length; i++) {
-			Debug.Log (WebCamTexture.devices [i].name + i);
-		}
+    void OnEnable()
+    {
+		string webcamName = WebCamTexture.devices [0].name;
+		webcamera = new WebCamTexture (webcamName); //SET up the cam
+		Debug.Log("Webcam texture set from " + webcamName);
 
-//		webcam.requestedFPS = 15;  
-//		webcam.requestedHeight = 800;  
-//		webcam.requestedWidth = 800;  
-//
-		webcam.Play (); // play camera
-		Renderer renderer = GetComponent<Renderer> ();
-		renderer.material.mainTexture = webcam; //put cam tex onto quad
+        Setup();
+    }
+    
+    void Setup()
+    {
+        Play(); // play camera
+        Renderer renderer = GetComponent<Renderer>();
+        renderer.material.mainTexture = webcamera; //put cam tex onto quad
+        Debug.Log("Webcam assigned and playing: " + webcamera.isPlaying);
+    }
 
-	}
+    public static bool isPlaying()
+    {
+        return webcamera.isPlaying;
+    }
 
+    public static void Pause()
+    {
+        webcamera.Pause();
+    }
+
+    public static void Play()
+    {
+        int counter = 0;
+        while (!isPlaying() && counter < 50)
+        {
+            webcamera.Play();
+            counter++;
+        }
+    }
+
+    public static void Stop()
+    {
+        webcamera.Stop();
+    }
 }
+

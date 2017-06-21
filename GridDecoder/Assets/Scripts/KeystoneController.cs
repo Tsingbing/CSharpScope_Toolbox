@@ -49,7 +49,7 @@ public class KeystoneController : MonoBehaviour
 		Mesh mesh = GetComponent<MeshFilter> ().mesh; // get this GO mesh
 		mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };	
 
-		cornerMaker (); //make the corners for visual controls 
+		CornerMaker (); //make the corners for visual controls 
 	}
 
 	/// <summary>
@@ -87,7 +87,7 @@ public class KeystoneController : MonoBehaviour
 
 	/// Methods section 
 
-	private void cornerMaker ()
+	private void CornerMaker ()
 	{
 		_corners = new GameObject[_vertices.Length]; // make corners spheres 
 		for (int i = 0; i < _vertices.Length; i++) {
@@ -120,21 +120,21 @@ public class KeystoneController : MonoBehaviour
 			Debug.Log("Current input is " + Input.inputString);
 
 		if (Input.GetKey (KeyCode.S)) {
-			saveSettings ();
+			SaveSettings ();
 			return;
 		} else if (Input.GetKey (KeyCode.L)) {
-			loadSettings ();
+			LoadSettings ();
 			return;
 		}
 
-		updateSelection ();
+		UpdateSelection ();
 	}
 
 	/// <summary>
 	/// Saves the settings to a JSON.
 	/// </summary>
 	/// <returns><c>true</c>, if settings were saved, <c>false</c> otherwise.</returns>
-	private bool saveSettings() {
+	private bool SaveSettings() {
 		if (_debug)
 			Debug.Log ("Saving keystone settings.");
 
@@ -150,7 +150,7 @@ public class KeystoneController : MonoBehaviour
 	/// Loads the settings.
 	/// </summary>
 	/// <returns><c>true</c>, if settings were loaded, <c>false</c> otherwise.</returns>
-	private bool loadSettings() {
+	private bool LoadSettings() {
 		if (_debug)
 			Debug.Log ("Loading keystone settings.");
 
@@ -164,7 +164,7 @@ public class KeystoneController : MonoBehaviour
 	/// <summary>
 	/// Updates the selection for each keypress event.
 	/// </summary>
-	private void updateSelection() {
+	private void UpdateSelection() {
 		var corner = Input.GetKeyDown ("1") ? 0 : (Input.GetKeyDown ("2") ? 1 : (Input.GetKeyDown ("3") ? 2 : (Input.GetKeyDown ("4") ? 3 : selectedCorner)));
 
 		if (corner != selectedCorner) {

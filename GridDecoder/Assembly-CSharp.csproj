@@ -48,6 +48,7 @@
   <ItemGroup>
      <Compile Include="Assets\Scripts\JsonParser.cs" />
      <Compile Include="Assets\Scripts\KeystoneController.cs" />
+     <Compile Include="Assets\Scripts\ResetScene.cs" />
      <Compile Include="Assets\Scripts\Scanners.cs" />
      <Compile Include="Assets\Scripts\Webcam.cs" />
      <None Include="Assets\Affine UV fix.shader" />

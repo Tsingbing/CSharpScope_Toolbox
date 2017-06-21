@@ -80,21 +80,21 @@ public class Scanners : MonoBehaviour
 		while (true) {
 			if (!refresh)
 				yield return new WaitForEndOfFrame ();
-			setTexture ();
+			SetTexture ();
 			yield return new WaitForSeconds (_refreshRate);
 
 			// Assign render texture from keystoned quad texture copy & copy it to a Texture2D
-			assignRenderTexture();
+			AssignRenderTexture();
 
 			if (_isCalibrating) {
-				calibrateColors ();
+				CalibrateColors ();
 			} 
 			else {
 				// Assign scanner colors
-				scanColors();
+				ScanColors();
 
 				if (_debug)
-					printMatrix ();
+					PrintMatrix ();
 			}
 			if (setup)
 				setup = false;
@@ -114,7 +114,7 @@ public class Scanners : MonoBehaviour
 	private void initVariables() {
 		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
 		currentIds = new int[_numOfScannersX / _gridSize, _numOfScannersY / _gridSize];
-		makeScanners ();
+		MakeScanners ();
 
 		// Find copy mesh with RenderTexture
 		keystonedQuad = GameObject.Find (colorTexturedQuadName);
@@ -128,7 +128,7 @@ public class Scanners : MonoBehaviour
 	/// <summary>
 	/// Calibrates the colors based on sample points.
 	/// </summary>
-	private void calibrateColors() {
+	private void CalibrateColors() {
 		sampleCubes = new GameObject[4];
 		sampleCubes[0] = GameObject.Find (colorWhiteName);
 		sampleCubes[1] = GameObject.Find (colorBlackName);
@@ -153,7 +153,7 @@ public class Scanners : MonoBehaviour
 	/// <summary>
 	/// Scans the colors.
 	/// </summary>
-	private void scanColors() {
+	private void ScanColors() {
 		for (int i = 0; i < _numOfScannersX; i += _gridSize) {
 			for (int j = 0; j < _numOfScannersY; j += _gridSize) {
 				string key = "";
@@ -191,7 +191,7 @@ public class Scanners : MonoBehaviour
 	/// <summary>
 	/// Prints the ID matrix.
 	/// </summary>
-	private void printMatrix() {
+	private void PrintMatrix() {
 		string matrix = "";
 
 		if ((int)(currentIds.Length) <= 1) {
@@ -224,7 +224,7 @@ public class Scanners : MonoBehaviour
 				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
 				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
 				Color pixel = hitTex.GetPixel (_locX, _locY);
-				int pixelID = closestColor (pixel);
+				int pixelID = ClosestColor (pixel);
 				Color currPixel = new Color(sampledColors [pixelID].x, sampledColors [pixelID].y, sampledColors [pixelID].z);
 
 				//paint scanner with the found color 
@@ -246,7 +246,7 @@ public class Scanners : MonoBehaviour
 	/// Assigns the render texture to a Texture2D.
 	/// </summary>
 	/// <returns>The render texture as Texture2D.</returns>
-	private void assignRenderTexture() {
+	private void AssignRenderTexture() {
 		RenderTexture rt = GameObject.Find (colorTexturedQuadName).transform.GetComponent<Renderer> ().material.mainTexture as RenderTexture;
 		RenderTexture.active = rt;
 		hitTex = new Texture2D (rt.width, rt.height, TextureFormat.RGB24, false);
@@ -256,9 +256,13 @@ public class Scanners : MonoBehaviour
 	/// <summary>
 	/// Sets the texture.
 	/// </summary>
-	private void setTexture() {
+	private void SetTexture() {
 		if (_useWebcam) {
-			_texture.SetPixels ((GetComponent<Renderer> ().material.mainTexture as WebCamTexture).GetPixels ()); //for webcam 
+			if (Webcam.isPlaying())
+          {
+                _texture.SetPixels((GetComponent<Renderer>().material.mainTexture as WebCamTexture).GetPixels()); //for webcam 
+          }
+          else return;
 		}
 		else {
 			_texture.SetPixels ((GetComponent<Renderer> ().material.mainTexture as Texture2D).GetPixels ()); // for texture map 
@@ -271,7 +275,7 @@ public class Scanners : MonoBehaviour
 	/// </summary>
 	/// <returns>The closest color's index in the colors array.</returns>
 	/// <param name="pixel">Pixel.</param>
-	private int closestColor(Color pixel) {
+	private int ClosestColor(Color pixel) {
 		Vector3 currPixel = new Vector3 (pixel.r, pixel.g, pixel.b);
 		double minDistance = Double.PositiveInfinity;
 		int minColor = -1;
@@ -289,7 +293,7 @@ public class Scanners : MonoBehaviour
 	/// <summary>
 	/// Initialize scanners.
 	/// </summary>
-	private void makeScanners ()
+	private void MakeScanners ()
 	{
 		for (int x = 0; x < _numOfScannersX; x++) {
 			for (int y = 0; y < _numOfScannersY; y++) {
@@ -307,7 +311,7 @@ public class Scanners : MonoBehaviour
 	/// <summary>
 	/// Loads the color sampler objects from a JSON.
 	/// </summary>
-	private void loadSamplers() {
+	private void LoadSamplers() {
 		if (_debug)
 			Debug.Log ("Loading color sampling settings.");
 
@@ -323,7 +327,7 @@ public class Scanners : MonoBehaviour
 	/// <summary>
 	/// Saves the color sampler objects to a JSON.
 	/// </summary>
-	private void saveSamplers() {
+	private void SaveSamplers() {
 		if (_debug)
 			Debug.Log ("Saving color sampling settings.");
 
@@ -344,10 +348,10 @@ public class Scanners : MonoBehaviour
 	{
 		if (Input.GetKey (KeyCode.S)) {
 			Debug.Log ("Key pressed to save color settings.");
-			saveSamplers ();
+			SaveSamplers ();
 		} else if (Input.GetKey (KeyCode.L)) {
 			Debug.Log ("Key pressed to load color settings.");
-			loadSamplers ();
+			LoadSamplers ();
 		}
 	}
 
