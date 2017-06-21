@@ -8,6 +8,9 @@ public class Webcam : MonoBehaviour {
 	void Start () {
 		
 		WebCamTexture webcam = new WebCamTexture (WebCamTexture.devices [0].name); //SET up the cam
+		for (int i = 0; i < WebCamTexture.devices.Length; i++) {
+			Debug.Log (WebCamTexture.devices [i].name + i);
+		}
 
 //		webcam.requestedFPS = 15;  
 //		webcam.requestedHeight = 800;  
