@@ -162,16 +162,16 @@ public class Scanners : MonoBehaviour
 	/// Scans the colors.
 	/// </summary>
 	private void ScanColors() {
+		string key = "";
 		for (int i = 0; i < _numOfScannersX; i += _gridSize) {
 			for (int j = 0; j < _numOfScannersY; j += _gridSize) {
-				string key = "";
-
+				key = "";
 				for (int k = 0; k < _gridSize; k++) {
 					for (int m = 0; m < _gridSize; m++) {
 						key += findColor (i + k, j + m); 
 					}
 				} 
-
+					
 				// keys read counterclockwise
 				key = new string(key.ToCharArray().Reverse().ToArray());
 
@@ -257,8 +257,9 @@ public class Scanners : MonoBehaviour
 	private void AssignRenderTexture() {
 		RenderTexture rt = GameObject.Find (colorTexturedQuadName).transform.GetComponent<Renderer> ().material.mainTexture as RenderTexture;
 		RenderTexture.active = rt;
-		hitTex = new Texture2D (rt.width, rt.height, TextureFormat.RGB24, false);
-		hitTex.ReadPixels( new Rect(0, 0, rt.width, rt.height), 0, 0);
+		if (!hitTex)
+			hitTex = new Texture2D (rt.width, rt.height, TextureFormat.RGB24, false);
+		hitTex.ReadPixels (new Rect (0, 0, rt.width, rt.height), 0, 0);
 	}
 
 	/// <summary>

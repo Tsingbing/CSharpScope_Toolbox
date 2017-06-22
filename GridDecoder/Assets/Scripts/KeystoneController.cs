@@ -214,6 +214,7 @@ public class KeystoneController : MonoBehaviour
 			v = v + speed * Vector3.left;
 		else if (Input.GetKeyDown (KeyCode.RightArrow))
 			v = v + speed * Vector3.right;
+		else needUpdate = false;
 
 		vertices [selectedCorner] = v;
 	}
