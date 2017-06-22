@@ -28,6 +28,9 @@ public class KeystoneController : MonoBehaviour
 	private Vector3[] vertices;
 	private GameObject[] _corners;
 	public int selectedCorner;
+	private Mesh mesh;
+	private Vector2[] widths_heights = new Vector2[4];
+	private bool needUpdate = true;
 
 	public string _settingsFileName = "_keystoneSettings.json";
 
@@ -40,14 +43,14 @@ public class KeystoneController : MonoBehaviour
 	/// </summary>
 	void Start ()
 	{
-		LoadSettings ();
 		EventManager.StartListening ("reload", OnReloadKeystone);
 
 		Destroy (this.GetComponent <MeshCollider> ()); //destroy so we can make one in dynamically 
 		transform.gameObject.AddComponent <MeshCollider> (); //add new collider 
 	
-		Mesh mesh = GetComponent<MeshFilter> ().mesh; // get this GO mesh
+		mesh = GetComponent<MeshFilter> ().mesh; // get this GO mesh
 		mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };	
+		LoadSettings ();
 
 		CornerMaker (); //make the corners for visual controls 
 	}
@@ -57,9 +60,24 @@ public class KeystoneController : MonoBehaviour
 	/// </summary>
 	void Update ()
 	{
-		Mesh mesh = GetComponent<MeshFilter> ().mesh;
+		if (_useKeystone) {
+			OnSceneControl ();
+
+			if (needUpdate) {
+				SetupMesh ();
+				needUpdate = false;
+			}
+		}
+			
+		onOffObjects (_useKeystone); // toggles onoff at each click
+	}
+
+	/// <summary>
+	/// Reinitializes the mesh.
+	/// </summary>
+	private void SetupMesh() {
 		mesh.vertices = vertices;
-		 
+
 		// Zero out the left and bottom edges, 
 		// leaving a right trapezoid with two sides on the axes and a vertex at the origin.
 		var shiftedPositions = new Vector2[] {
@@ -70,23 +88,16 @@ public class KeystoneController : MonoBehaviour
 		};
 		mesh.uv = shiftedPositions;
 
-		var widths_heights = new Vector2[4];
 		widths_heights [0].x = widths_heights [3].x = shiftedPositions [3].x;
 		widths_heights [1].x = widths_heights [2].x = shiftedPositions [2].x;
 		widths_heights [0].y = widths_heights [1].y = shiftedPositions [1].y;
 		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
 		mesh.uv2 = widths_heights;
 
-		onOffObjects (_useKeystone); // toggles onoff at each click
-		if (_useKeystone) {
-			OnSceneControl ();
-		}
-
-		transform.GetComponent<MeshCollider> ().sharedMesh = mesh;// make new collider based on updated mesh 
+		transform.GetComponent<MeshCollider> ().sharedMesh = mesh;
 	}
 
 	/// Methods section 
-
 	private void CornerMaker ()
 	{
 		_corners = new GameObject[vertices.Length]; // make corners spheres 
@@ -98,7 +109,10 @@ public class KeystoneController : MonoBehaviour
 		}
 	}
 
-
+	/// <summary>
+	/// Ons the off objects.
+	/// </summary>
+	/// <param name="visible">If set to <c>true</c> visible.</param>
 	private void onOffObjects (bool visible)
 	{
 		for (int i = 0; i < vertices.Length; i++) {
@@ -113,9 +127,6 @@ public class KeystoneController : MonoBehaviour
 	/// </summary>
 	private void OnSceneControl ()
 	{
-		if (!_useKeystone)
-			return;
-
 		if (Input.anyKey && _debug)
 			Debug.Log("Current input is " + Input.inputString);
 
@@ -127,6 +138,8 @@ public class KeystoneController : MonoBehaviour
 			return;
 		}
 
+		if (!_useKeystone)
+			return;
 		UpdateSelection ();
 	}
 
@@ -162,6 +175,7 @@ public class KeystoneController : MonoBehaviour
 			settings = JsonUtility.FromJson<KeystoneSettings> (dataAsJson);
 			vertices = settings.vertices;
 		}
+		SetupMesh ();
 
 		return true;
 	}
@@ -170,6 +184,9 @@ public class KeystoneController : MonoBehaviour
 	/// Updates the selection for each keypress event.
 	/// </summary>
 	private void UpdateSelection() {
+		if (Input.anyKey)
+			needUpdate = true;
+		
 		var corner = Input.GetKeyDown ("1") ? 0 : (Input.GetKeyDown ("2") ? 1 : (Input.GetKeyDown ("3") ? 2 : (Input.GetKeyDown ("4") ? 3 : selectedCorner)));
 
 		if (corner != selectedCorner) {
