@@ -20,8 +20,10 @@ public class Scanners : MonoBehaviour
 	public static int[,] currentIds;
 
 	public GameObject _gridParent;
-	public int _numOfScannersX;
-	public int _numOfScannersY;
+	public int _gridSizeX;
+	public int _gridSizeY;
+	private int numOfScannersX;
+	private int numOfScannersY;
 	private GameObject _scanner;
 	RaycastHit hit;
 	RenderTexture rTex;
@@ -116,8 +118,10 @@ public class Scanners : MonoBehaviour
 	/// Initializes the variables.
 	/// </summary>
 	private void initVariables() {
-		scannersList = new GameObject[_numOfScannersX, _numOfScannersY];
-		currentIds = new int[_numOfScannersX / _gridSize, _numOfScannersY / _gridSize];
+		numOfScannersX = _gridSizeX * 2;
+		numOfScannersY = _gridSizeY * 2;
+		scannersList = new GameObject[numOfScannersX, numOfScannersY];
+		currentIds = new int[numOfScannersX / _gridSize, numOfScannersY / _gridSize];
 		sampleCubes = new GameObject[4];
 		MakeScanners ();
 
@@ -163,8 +167,8 @@ public class Scanners : MonoBehaviour
 	/// </summary>
 	private void ScanColors() {
 		string key = "";
-		for (int i = 0; i < _numOfScannersX; i += _gridSize) {
-			for (int j = 0; j < _numOfScannersY; j += _gridSize) {
+		for (int i = 0; i < numOfScannersX; i += _gridSize) {
+			for (int j = 0; j < numOfScannersY; j += _gridSize) {
 				key = "";
 				for (int k = 0; k < _gridSize; k++) {
 					for (int m = 0; m < _gridSize; m++) {
@@ -304,10 +308,10 @@ public class Scanners : MonoBehaviour
 	/// </summary>
 	private void MakeScanners ()
 	{
-		for (int x = 0; x < _numOfScannersX; x++) {
-			for (int y = 0; y < _numOfScannersY; y++) {
+		for (int x = 0; x < numOfScannersX; x++) {
+			for (int y = 0; y < numOfScannersY; y++) {
 				_scanner = GameObject.CreatePrimitive (PrimitiveType.Cube);
-				_scanner.name = "grid_" + y + _numOfScannersX * x;
+				_scanner.name = "grid_" + y + numOfScannersX * x;
 				_scanner.transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale);  
 				_scanner.transform.position = new Vector3 (x * _scannerScale * 2, GameObject.Find (colorTexturedQuadName).transform.position.y + 0.1f, y * _scannerScale * 2);
 				_scanner.transform.Rotate (90, 0, 0); 

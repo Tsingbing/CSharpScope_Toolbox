@@ -36,7 +36,7 @@ public class KeystoneController : MonoBehaviour
 
 	public bool _useKeystone = true;
 	public bool _debug = false;
-	private float speed = 0.005f;
+	private float speed = 0.001f;
 
 	/// <summary>
 	/// Start this instance.
@@ -206,13 +206,13 @@ public class KeystoneController : MonoBehaviour
 
 		var v = vertices [selectedCorner];
 
-		if (Input.GetKeyDown (KeyCode.UpArrow))
+		if (Input.GetKey (KeyCode.UpArrow))
 			v = v + speed * Vector3.up;
-		else if (Input.GetKeyDown (KeyCode.DownArrow))
+		else if (Input.GetKey (KeyCode.DownArrow))
 			v = v + speed * Vector3.down;
-		else if (Input.GetKeyDown (KeyCode.LeftArrow))
+		else if (Input.GetKey (KeyCode.LeftArrow))
 			v = v + speed * Vector3.left;
-		else if (Input.GetKeyDown (KeyCode.RightArrow))
+		else if (Input.GetKey (KeyCode.RightArrow))
 			v = v + speed * Vector3.right;
 		else needUpdate = false;
 
