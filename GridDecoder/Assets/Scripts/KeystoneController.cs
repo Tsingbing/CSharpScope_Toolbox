@@ -36,7 +36,7 @@ public class KeystoneController : MonoBehaviour
 
 	public bool _useKeystone = true;
 	public bool _debug = false;
-	private float speed = 0.01f;
+	private float speed = 0.005f;
 
 	/// <summary>
 	/// Start this instance.
