@@ -38,6 +38,11 @@ public class KeystoneController : MonoBehaviour
 	public bool _debug = false;
 	private float speed = 0.001f;
 
+	private float q0; 
+	private float q1; 
+	private float q2;
+	private float q3;
+
 	/// <summary>
 	/// Start this instance.
 	/// </summary>
@@ -64,6 +69,7 @@ public class KeystoneController : MonoBehaviour
 			OnSceneControl ();
 
 			if (needUpdate) {
+				GetHomogeneousCoords ();
 				SetupMesh ();
 				needUpdate = false;
 			}
@@ -80,22 +86,66 @@ public class KeystoneController : MonoBehaviour
 
 		// Zero out the left and bottom edges, 
 		// leaving a right trapezoid with two sides on the axes and a vertex at the origin.
-		var shiftedPositions = new Vector2[] {
-			Vector2.zero,
-			new Vector2 (0, vertices [1].y - vertices [0].y),
-			new Vector2 (vertices [2].x - vertices [1].x, vertices [2].y - vertices [3].y),
-			new Vector2 (vertices [3].x - vertices [0].x, 0)
-		};
-		mesh.uv = shiftedPositions;
+//		var shiftedPositions = new Vector2[] {
+//			Vector2.zero,
+//			new Vector2 (0, vertices [1].y - vertices [0].y),
+//			new Vector2 (vertices [2].x - vertices [1].x, vertices [2].y - vertices [3].y),
+//			new Vector2 (vertices [3].x - vertices [0].x, 0)
+//		};
+//		mesh.uv = shiftedPositions;
+//
+//		widths_heights [0].x = widths_heights [3].x = shiftedPositions [3].x;
+//		widths_heights [1].x = widths_heights [2].x = shiftedPositions [2].x;
+//		widths_heights [0].y = widths_heights [1].y = shiftedPositions [1].y;
+//		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
+//		mesh.uv2 = widths_heights;
 
-		widths_heights [0].x = widths_heights [3].x = shiftedPositions [3].x;
-		widths_heights [1].x = widths_heights [2].x = shiftedPositions [2].x;
-		widths_heights [0].y = widths_heights [1].y = shiftedPositions [1].y;
-		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
-		mesh.uv2 = widths_heights;
+		Vector3 shiftedPositions = new Vector3[] {
+			q0 * Vector3.zero,
+			new Vector2 (0, q1 * (vertices [1].y - vertices [0].y)),
+			new Vector2 (q2 * (vertices [2].x - vertices [1].x), q2 * (vertices [2].y - vertices [3].y)),
+			new Vector2 (q3 * (vertices [3].x - vertices [0].x), 0)
+		};
+
+		mesh.SetUVs (0, shiftedPositions);
 
 		transform.GetComponent<MeshCollider> ().sharedMesh = mesh;
 	}
+
+	/// <summary>
+	/// Gets the homogeneous coordinates for perspective correction.
+	/// Based on https://bitlush.com/blog/arbitrary-quadrilaterals-in-opengl-es-2-0
+	/// </summary>
+	private void GetHomogeneousCoords() {
+		float ax = vertices [2].x - vertices [0].x;
+		float ay = vertices [2].y - vertices [0].y;
+		float bx = vertices [3].x - vertices [1].x;
+		float by = vertices [3].y - vertices [1].y;
+
+		float cross = ax * by - ay * bx;
+
+		if (cross != 0) {
+			float cy = vertices [0].y - vertices [1].y;
+			float cx = vertices [0].x - vertices [1].x;
+
+			float s = (ax * cy - ay * cx) / cross;
+
+			if (s > 0 && s < 1) {
+				float t = (bx * cy - by * cx) / cross;
+
+				if (t > 0 && t < 1) {
+					q0 = 1 / (1 - t);
+					q1 = 1 / (1 - s);
+					q2 = 1 / t;
+					q3 = 1 / s;
+
+					// you can now pass (u * q, v * q, q) to OpenGL
+
+				}
+			}
+		}
+	}
+
 
 	/// Methods section 
 	private void CornerMaker ()
