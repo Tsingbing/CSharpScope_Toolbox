@@ -59,10 +59,10 @@ public class keyStone : MonoBehaviour
 		Debug.Log ("x: " + _vertices [0].x + " " + _vertices [1].x + " " + _vertices [2].x + " " + _vertices [3].x + " "); 
 
 		var shiftedPositions = new List<Vector4> {
-			new Vector4 (0, 0, 0, _vertices [3].x - _vertices [0].x),
-			new Vector4 (0, _vertices [1].y - _vertices [0].y, 0, _vertices [1].y - _vertices [0].y),
-			new Vector4 (_vertices [2].x - _vertices [1].x, _vertices [2].y - _vertices [3].y, 0, xBottom / xTop),
-			new Vector4 (_vertices [3].x - _vertices [0].x, 0, 0, _vertices [3].x - _vertices [0].x)
+			new Vector4 (0, 0, 0, xBottom),
+			new Vector4 (0, yHeight, 0, yHeight),
+			new Vector4 (xTop, _vertices [2].y - _vertices [3].y, 0, xBottom / xTop),
+			new Vector4 (xBottom, 0, 0, xBottom)
 		};
 		mesh.SetUVs (1, shiftedPositions);
 		mesh.SetUVs (0, shiftedPositions);
