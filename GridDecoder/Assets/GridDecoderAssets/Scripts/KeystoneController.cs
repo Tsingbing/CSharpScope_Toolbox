@@ -68,8 +68,9 @@ public class KeystoneController : MonoBehaviour
 		if (_useKeystone) {
 			OnSceneControl ();
 
+			GetHomogeneousCoords ();
+
 			if (needUpdate) {
-				GetHomogeneousCoords ();
 				SetupMesh ();
 				needUpdate = false;
 			}
@@ -86,28 +87,40 @@ public class KeystoneController : MonoBehaviour
 
 		// Zero out the left and bottom edges, 
 		// leaving a right trapezoid with two sides on the axes and a vertex at the origin.
-//		var shiftedPositions = new Vector2[] {
-//			Vector2.zero,
-//			new Vector2 (0, vertices [1].y - vertices [0].y),
-//			new Vector2 (vertices [2].x - vertices [1].x, vertices [2].y - vertices [3].y),
-//			new Vector2 (vertices [3].x - vertices [0].x, 0)
-//		};
-//		mesh.uv = shiftedPositions;
-//
-//		widths_heights [0].x = widths_heights [3].x = shiftedPositions [3].x;
-//		widths_heights [1].x = widths_heights [2].x = shiftedPositions [2].x;
-//		widths_heights [0].y = widths_heights [1].y = shiftedPositions [1].y;
-//		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
-//		mesh.uv2 = widths_heights;
 
-		Vector3 shiftedPositions = new Vector3[] {
-			q0 * Vector3.zero,
-			new Vector2 (0, q1 * (vertices [1].y - vertices [0].y)),
-			new Vector2 (q2 * (vertices [2].x - vertices [1].x), q2 * (vertices [2].y - vertices [3].y)),
-			new Vector2 (q3 * (vertices [3].x - vertices [0].x), 0)
+		q0 = 1;
+		q1 = (vertices [1].y - vertices [0].y);
+		q2 = (vertices [2].x - vertices [1].x) * (vertices [2].y - vertices [3].y);
+		q3 = (vertices [3].x - vertices [0].x);
+
+
+		List<Vector4>  shiftedPositions = new List<Vector4> {
+			new Vector4(0, 0, 0, q0),
+			new Vector4 (0, q1, 0, q1),
+			new Vector4 (q2 / (vertices [2].y - vertices [3].y), q2 / (vertices [2].x - vertices [1].x), 0, q2),
+			new Vector4 (q3, 0, 0, q3)
 		};
 
 		mesh.SetUVs (0, shiftedPositions);
+
+		widths_heights [0].x = widths_heights [3].x = shiftedPositions [3].x;
+		widths_heights [1].x = widths_heights [2].x = shiftedPositions [2].x;
+		widths_heights [0].y = widths_heights [1].y = shiftedPositions [1].y;
+		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
+
+		//mesh.uv2 = widths_heights;
+
+		Vector2[] qs = new Vector2[] {
+			new Vector2(q0, 1),
+			new Vector2(q1, 1),
+			new Vector2(q2, 1),
+			new Vector2(q3, 1)
+		};
+
+		mesh.uv2 = qs;
+
+
+
 
 		transform.GetComponent<MeshCollider> ().sharedMesh = mesh;
 	}
@@ -119,14 +132,14 @@ public class KeystoneController : MonoBehaviour
 	private void GetHomogeneousCoords() {
 		float ax = vertices [2].x - vertices [0].x;
 		float ay = vertices [2].y - vertices [0].y;
-		float bx = vertices [3].x - vertices [1].x;
-		float by = vertices [3].y - vertices [1].y;
+		float bx = vertices [1].x - vertices [3].x;
+		float by = vertices [1].y - vertices [3].y;
 
 		float cross = ax * by - ay * bx;
 
 		if (cross != 0) {
-			float cy = vertices [0].y - vertices [1].y;
-			float cx = vertices [0].x - vertices [1].x;
+			float cy = vertices [0].y - vertices [3].y;
+			float cx = vertices [0].x - vertices [3].x;
 
 			float s = (ax * cy - ay * cx) / cross;
 
@@ -139,7 +152,16 @@ public class KeystoneController : MonoBehaviour
 					q2 = 1 / t;
 					q3 = 1 / s;
 
-					// you can now pass (u * q, v * q, q) to OpenGL
+					Debug.Log ("Q0 is " + q0);
+					Debug.Log ("Q1 is " + q1);
+					Debug.Log ("Q2 is " + q2);
+					Debug.Log ("Q3 is " + q3);
+
+					q0 = 1;
+					q1 = 1;
+					q2 = 1;
+					q3 = 1;
+
 
 				}
 			}

@@ -1,6 +1,6 @@
 Base path: /Applications/Unity/Unity.app/Contents
 Cmd: initializeCompiler
 Cmd: disassembleShader
-  api=15 insize=1451 outsize=1451 ok=1
+  api=15 insize=0 outsize=57 ok=1
 
 Quitting shader compiler process

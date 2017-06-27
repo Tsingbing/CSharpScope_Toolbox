@@ -1,13 +1,9 @@
-﻿<Properties StartupItem="GridDecoder.CSharp.csproj">
+﻿<Properties StartupItem="Assembly-CSharp.csproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="Unity.Instance.Unity Editor" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/Scanners.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/GridDecoderAssets/Scripts/KeystoneController.cs">
     <Files>
-      <File FileName="Assets/Scripts/Scanners.cs" Line="1" Column="1" />
-      <File FileName="Assets/Scripts/Webcam.cs" Line="15" Column="17" />
-      <File FileName="Assets/Scripts/KeystoneController.cs" Line="1" Column="1" />
-      <File FileName="Assets/Scripts/JsonParser.cs" Line="1" Column="1" />
-      <File FileName="Assets/Scripts/ResetScene.cs" Line="19" Column="22" />
-      <File FileName="Assets/Scripts/EventManager.cs" Line="69" Column="3" />
+      <File FileName="Assets/GridDecoderAssets/Shaders/Affine UV fix.shader" Line="52" Column="74" />
+      <File FileName="Assets/GridDecoderAssets/Scripts/KeystoneController.cs" Line="115" Column="25" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
