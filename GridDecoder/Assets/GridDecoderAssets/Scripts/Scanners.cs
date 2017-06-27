@@ -310,10 +310,10 @@ public class Scanners : MonoBehaviour
 	{
 		for (int x = 0; x < numOfScannersX; x++) {
 			for (int y = 0; y < numOfScannersY; y++) {
-				_scanner = GameObject.CreatePrimitive (PrimitiveType.Cube);
+				_scanner = GameObject.CreatePrimitive (PrimitiveType.Quad);
 				_scanner.name = "grid_" + y + numOfScannersX * x;
 				_scanner.transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale);  
-				_scanner.transform.position = new Vector3 (x * _scannerScale * 2, GameObject.Find (colorTexturedQuadName).transform.position.y + 0.1f, y * _scannerScale * 2);
+				_scanner.transform.position = new Vector3 (_gridParent.transform.position.x + x * _scannerScale * 2, GameObject.Find (colorTexturedQuadName).transform.position.y + 0.1f, y * _scannerScale * 2);
 				_scanner.transform.Rotate (90, 0, 0); 
 				_scanner.transform.parent = _gridParent.transform;
 				scannersList[x, y] = this._scanner;
