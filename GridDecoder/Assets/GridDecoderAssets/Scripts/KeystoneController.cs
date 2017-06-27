@@ -197,11 +197,12 @@ public class KeystoneController : MonoBehaviour
 				Debug.Log ("Selection changed to " + selectedCorner.ToString ());
 		}
 
-		if (Input.GetKey (KeyCode.LeftShift))
+
+		if (Input.GetKeyDown (KeyCode.LeftShift))
 			speed *= 10;
-		else if (Input.GetKey (KeyCode.LeftControl) && Input.GetKey (KeyCode.LeftAlt))
+		else if (Input.GetKeyDown (KeyCode.LeftControl) && Input.GetKeyDown (KeyCode.LeftAlt))
 			speed *= 0.1f;
-		else if (Input.GetKey (KeyCode.LeftAlt))
+		else if (Input.GetKeyDown (KeyCode.LeftAlt))
 			speed *= 0.01f; 
 
 		var v = vertices [selectedCorner];
