@@ -24,14 +24,14 @@ Shader "Custom/Affine UV fix Cg" {
  
         struct vertexInput {
             float4 vertex : POSITION;        
-            float4 texcoord  : TEXCOORD0;
+            float3 texcoord  : TEXCOORD0;
             float2 texcoord1 : TEXCOORD1;
 
         };
  
         struct vertexOutput {
             float4 pos : SV_POSITION;
-            float4 uv  : TEXCOORD0;
+            float3 uv  : TEXCOORD0;
             float2 uv2 : TEXCOORD1;
         };
  

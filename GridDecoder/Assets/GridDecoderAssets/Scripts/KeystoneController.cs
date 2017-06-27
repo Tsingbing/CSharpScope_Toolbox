@@ -24,6 +24,12 @@ public class KeystoneController : MonoBehaviour
 
 	KeystoneSettings settings;
 
+	private float mua;
+	private float mub;
+
+	private float[] d = new float[4];
+	float[] q = new float[4];
+
 	public Vector3[] _vertices;
 	private Vector3[] vertices;
 	private GameObject[] _corners;
@@ -68,8 +74,6 @@ public class KeystoneController : MonoBehaviour
 		if (_useKeystone) {
 			OnSceneControl ();
 
-			GetHomogeneousCoords ();
-
 			if (needUpdate) {
 				SetupMesh ();
 				needUpdate = false;
@@ -93,79 +97,122 @@ public class KeystoneController : MonoBehaviour
 		q2 = (vertices [2].x - vertices [1].x) * (vertices [2].y - vertices [3].y);
 		q3 = (vertices [3].x - vertices [0].x);
 
+		q0 = 1;
+		q1 = 1;
+		q2 = 1;
+		q3 = 1;
 
-		List<Vector4>  shiftedPositions = new List<Vector4> {
-			new Vector4(0, 0, 0, q0),
-			new Vector4 (0, q1, 0, q1),
-			new Vector4 (q2 / (vertices [2].y - vertices [3].y), q2 / (vertices [2].x - vertices [1].x), 0, q2),
-			new Vector4 (q3, 0, 0, q3)
+//		Vector2[]  shiftedPositions = new Vector2[] {
+//			new Vector2(0, 0),
+//			new Vector2 (0, q1),
+//			new Vector2 (q2 / (vertices [2].y - vertices [3].y), q2 / (vertices [2].x - vertices [1].x)),
+//			new Vector2 (q3, 0)
+//		};
+
+		Vector2[]  shiftedPositions = new Vector2[] {
+			new Vector2(0, 0),
+			new Vector2 (0, q1),
+			new Vector2 (q2 , q2),
+			new Vector2 (q3, 0)
+		};
+			
+		if (IsIntersecting(shiftedPositions[1], shiftedPositions[0], shiftedPositions[3], shiftedPositions[2]))
+		{
+			Debug.Log ("Mua = " + mua + " Mub = " + mub);
+		}
+
+		// http://www.reedbeta.com/blog/2012/05/26/quadrilateral-interpolation-part-1/
+		// calculate qi
+		// uvqi = (di+d(i+2))/d(i+2) (i=0°≠3)
+
+		q[0] = (d [0] + d [2]) / d [2];
+		q[1] = (d [1] + d [3]) / d [3];
+		q[2] = (d [2] + d [0]) / d [0];
+		q[3] = (d [3] + d [1]) / d [1];
+
+
+		for (int i = 0; i < shiftedPositions.Length; i++) {
+			shiftedPositions [i] *= q [i];
+		}
+
+		List<Vector3> shiftedPositionsV3 = new List<Vector3> {
+			new Vector3(shiftedPositions[0].x, shiftedPositions[0].y, q[0]),
+			new Vector3 (shiftedPositions[1].x, shiftedPositions[1].y, q[1]),
+			new Vector3 (shiftedPositions[2].x, shiftedPositions[2].y, q[2]),
+			new Vector3 (shiftedPositions[3].x, shiftedPositions[3].y, q[3])
 		};
 
-		mesh.SetUVs (0, shiftedPositions);
-
-		widths_heights [0].x = widths_heights [3].x = shiftedPositions [3].x;
-		widths_heights [1].x = widths_heights [2].x = shiftedPositions [2].x;
-		widths_heights [0].y = widths_heights [1].y = shiftedPositions [1].y;
-		widths_heights [2].y = widths_heights [3].y = shiftedPositions [2].y;
-
-		//mesh.uv2 = widths_heights;
+		mesh.SetUVs (0, shiftedPositionsV3);
+		//mesh.uv = shiftedPositions;
 
 		Vector2[] qs = new Vector2[] {
-			new Vector2(q0, 1),
-			new Vector2(q1, 1),
-			new Vector2(q2, 1),
-			new Vector2(q3, 1)
+			new Vector2(q[0], 1),
+			new Vector2(q[1], 1),
+			new Vector2(q[2], 1),
+			new Vector2(q[3], 1)
 		};
 
 		mesh.uv2 = qs;
 
-
-
-
 		transform.GetComponent<MeshCollider> ().sharedMesh = mesh;
+	}
+		
+	/// <summary>
+	/// Determines whether this instance is intersecting the specified p1 p2 p3 p4 a b.
+	/// From http://mathforum.org/library/drmath/view/62814.html
+	/// and https://github.com/Geistyp/Projective-Interpolation-to-Quadrilateral
+	/// </summary>
+	/// <returns><c>true</c> if this instance is intersecting the specified p1 p2 p3 p4 a b; otherwise, <c>false</c>.</returns>
+	/// <param name="p1">P1.</param>
+	/// <param name="p2">P2.</param>
+	/// <param name="p3">P3.</param>
+	/// <param name="p4">P4.</param>
+	/// <param name="a">The alpha component.</param>
+	/// <param name="b">The blue component.</param>
+	/// 1, 0, 3, 2
+	private bool IsIntersecting(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4)
+	{
+		Vector2 V1 = p3 - p1;
+		Vector2 V2 = p4 - p2;
+		Vector2 P21 = p2 - p1;
+
+		if (_debug) {
+			Debug.DrawLine (p3, p1, Color.red, 200, false);
+			Debug.DrawLine (p4, p2, Color.blue, 200, false);
+		}
+
+		float V1cV2 = GetCrossProduct (V1, V2);
+
+		mua = (GetCrossProduct(P21,V2)) / (V1cV2);
+		mub = (GetCrossProduct(-P21, V1)) / (V1cV2);
+
+		Vector2 pIntersection = p1 + mua * V1;
+
+		if (_debug) {
+			var obj = GameObject.CreatePrimitive (PrimitiveType.Sphere);
+			obj.transform.position = pIntersection;
+			obj.transform.localScale = new Vector3 (0.1f, 0.1f, 0.1f);
+			obj.GetComponent<Renderer> ().material.color = Color.green;
+		}
+
+		d[0] = Vector2.Distance(pIntersection, p2);
+		d [1] = Vector2.Distance(pIntersection, p1);
+		d [2] = Vector2.Distance(pIntersection, p4);
+		d [3] = Vector2.Distance(pIntersection, p3);
+
+		return true;
 	}
 
 	/// <summary>
-	/// Gets the homogeneous coordinates for perspective correction.
-	/// Based on https://bitlush.com/blog/arbitrary-quadrilaterals-in-opengl-es-2-0
+	/// From http://james-ramsden.com/calculate-the-cross-product-c-code/
 	/// </summary>
-	private void GetHomogeneousCoords() {
-		float ax = vertices [2].x - vertices [0].x;
-		float ay = vertices [2].y - vertices [0].y;
-		float bx = vertices [1].x - vertices [3].x;
-		float by = vertices [1].y - vertices [3].y;
-
-		float cross = ax * by - ay * bx;
-
-		if (cross != 0) {
-			float cy = vertices [0].y - vertices [3].y;
-			float cx = vertices [0].x - vertices [3].x;
-
-			float s = (ax * cy - ay * cx) / cross;
-
-			if (s > 0 && s < 1) {
-				float t = (bx * cy - by * cx) / cross;
-
-				if (t > 0 && t < 1) {
-					q0 = 1 / (1 - t);
-					q1 = 1 / (1 - s);
-					q2 = 1 / t;
-					q3 = 1 / s;
-
-					Debug.Log ("Q0 is " + q0);
-					Debug.Log ("Q1 is " + q1);
-					Debug.Log ("Q2 is " + q2);
-					Debug.Log ("Q3 is " + q3);
-
-					q0 = 1;
-					q1 = 1;
-					q2 = 1;
-					q3 = 1;
-
-
-				}
-			}
-		}
+	/// <returns>The cross product.</returns>
+	/// <param name="v1">V1.</param>
+	/// <param name="v2">V2.</param>
+	private float GetCrossProduct(Vector2 v1, Vector2 v2)
+	{
+		float rtnvector = (v1.x * v2.y - v2.x * v1.y);
+		return rtnvector;
 	}
 
 
