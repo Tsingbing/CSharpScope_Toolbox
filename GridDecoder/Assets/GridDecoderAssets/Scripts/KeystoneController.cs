@@ -43,11 +43,11 @@ public class KeystoneController : MonoBehaviour
 
 	GameObject debugIntersectionSphere;
 
-	Vector2[]  texCoords = new Vector2[] {
-		new Vector2(0, 0),
-		new Vector2 (0, 1),
-		new Vector2 (1 , 1),
-		new Vector2 (1, 0)
+	Vector3[]  texCoords = new Vector3[] {
+		new Vector3(0, 0, 1),
+		new Vector3(0, 1, 1),
+		new Vector3(1 , 1, 1),
+		new Vector3(1, 0, 1)
 	};
 		
 	/// <summary>
@@ -61,8 +61,8 @@ public class KeystoneController : MonoBehaviour
 		transform.gameObject.AddComponent <MeshCollider> (); //add new collider 
 	
 		mesh = GetComponent<MeshFilter> ().mesh; // get this GO mesh
-		//mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };	
 		mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };
+		debugIntersectionSphere = GameObject.CreatePrimitive (PrimitiveType.Sphere);
 		LoadSettings ();
 
 		CornerMaker (); //make the corners for visual controls 
@@ -81,7 +81,6 @@ public class KeystoneController : MonoBehaviour
 				needUpdate = false;
 			}
 		}
-			
 		onOffObjects (_useKeystone); // toggles onoff at each click
 	}
 
@@ -90,74 +89,42 @@ public class KeystoneController : MonoBehaviour
 	/// </summary>
 	private void SetupMesh() {
 		mesh.vertices = vertices;
-
-		float q0 = vertices [0].x;
-		float q1 = (vertices [1].y - vertices [0].y);
-		float q2 = (vertices [2].x - vertices [1].x) * (vertices [2].y - vertices [3].y);
-		float q3 = (vertices [3].x - vertices [0].x);
-
-		Vector2[] vertexPositions = new Vector2[] {
-			new Vector2(0, 0),
-			new Vector2 (0, q1),
-			new Vector2 (q2 / (vertices [2].y - vertices [3].y), q2 / (vertices [2].x - vertices [1].x)),
-			new Vector2 (q3, 0)
-		};
-//
-//		Vector2[] vertexPositions = new Vector2[] {
-//			new Vector2 (vertices[0].x, vertices[1].y),
-//			new Vector2 (vertices [1].x, vertices [1].y - vertices [0].y),
-//			new Vector2 (vertices [2].x - vertices [0].x, vertices [2].y - vertices [0].y),
-//			new Vector2 (vertices [3].x - vertices [0].x, vertices [1].y)
-//		};
-
-		for (int i = 0; i < vertexPositions.Length; i++) {
-			if (vertexPositions [i].x < 0)
-				vertexPositions [i].x *= (-1f);
-			if (vertexPositions [i].y < 0)
-				vertexPositions [i].y *= (-1f);
-		}
-
 			
-		if (IsIntersecting(vertexPositions[1], vertexPositions[0], vertexPositions[3], vertexPositions[2]))
-		{
+		findQs ();
+
+		// Recompute uvqi & send to shader
+		List<Vector3> texCoordsV3 = new List<Vector3> {
+			texCoords[0] * q[0],
+			texCoords[1] * q[1],
+			texCoords[2] * q[2],
+			texCoords[3] * q[3],
+		};
+
+		mesh.SetUVs (0, texCoordsV3);
+		transform.GetComponent<MeshCollider> ().sharedMesh = mesh;
+	}
+
+	/// <summary>
+	/// Finds qi for texture mapping the quad.
+	/// </summary>
+	private void findQs() {
+		if (IsIntersecting(vertices[1], vertices[0], vertices[3], vertices[2]))
 			Debug.Log ("Intersection found.");
-		}
 
 		// http://www.reedbeta.com/blog/2012/05/26/quadrilateral-interpolation-part-1/
 		// calculate qi
 		// uvqi = (di+d(i+2))/d(i+2) (i=0°≠3)
-
 		q[0] = (d [0] + d [2]) / d [2];
 		q[1] = (d [1] + d [3]) / d [3];
 		q[2] = (d [2] + d [0]) / d [0];
 		q[3] = (d [3] + d [1]) / d [1];
-
-		List<Vector3> texCoordsV3 = new List<Vector3> {
-			new Vector3(texCoords[0].x * q[0], texCoords[0].y * q[0], q[0]),
-			new Vector3 (texCoords[1].x * q[1], texCoords[1].y * q[1], q[1]),
-			new Vector3 (texCoords[2].x * q[2], texCoords[2].y * q[2], q[2]),
-			new Vector3 (texCoords[3].x * q[3], texCoords[3].y * q[3], q[3])
-		};
-
-		mesh.SetUVs (0, texCoordsV3);
-		//mesh.uv = shiftedPositions;
-
-
-		transform.GetComponent<MeshCollider> ().sharedMesh = mesh;
 	}
 		
 	/// <summary>
-	/// Determines whether this instance is intersecting the specified p1 p2 p3 p4 a b.
+	/// Determines whether the two diagonals connecting p1p3 and p4p2 intersect.
 	/// From http://mathforum.org/library/drmath/view/62814.html
 	/// and https://github.com/Geistyp/Projective-Interpolation-to-Quadrilateral
 	/// </summary>
-	/// <returns><c>true</c> if this instance is intersecting the specified p1 p2 p3 p4 a b; otherwise, <c>false</c>.</returns>
-	/// <param name="p1">P1.</param>
-	/// <param name="p2">P2.</param>
-	/// <param name="p3">P3.</param>
-	/// <param name="p4">P4.</param>
-	/// <param name="a">The alpha component.</param>
-	/// <param name="b">The blue component.</param>
 	/// 1, 0, 3, 2
 	private bool IsIntersecting(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4)
 	{
@@ -171,14 +138,12 @@ public class KeystoneController : MonoBehaviour
 		}
 
 		float V1cV2 = GetCrossProduct (V1, V2);
-
 		float mua = (GetCrossProduct(P21,V2)) / (V1cV2);
 		float mub = (GetCrossProduct(-P21, V1)) / (V1cV2);
 
 		Vector2 pIntersection = p1 + mua * V1;
 
 		if (_debug) {
-			debugIntersectionSphere = GameObject.CreatePrimitive (PrimitiveType.Sphere);
 			debugIntersectionSphere.transform.position = pIntersection;
 			debugIntersectionSphere.transform.localScale = new Vector3 (0.1f, 0.1f, 0.1f);
 			debugIntersectionSphere.GetComponent<Renderer> ().material.color = Color.green;
@@ -192,10 +157,7 @@ public class KeystoneController : MonoBehaviour
 		return true;
 	}
 
-	/// <summary>
-	/// From http://james-ramsden.com/calculate-the-cross-product-c-code/
-	/// </summary>
-	/// <returns>The cross product.</returns>
+	/// Cross product.
 	private float GetCrossProduct(Vector2 v1, Vector2 v2)
 	{
 		float cross = (v1.x * v2.y - v2.x * v1.y);
