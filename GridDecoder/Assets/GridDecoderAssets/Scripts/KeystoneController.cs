@@ -24,9 +24,6 @@ public class KeystoneController : MonoBehaviour
 
 	KeystoneSettings settings;
 
-	private float mua;
-	private float mub;
-
 	private float[] d = new float[4];
 	float[] q = new float[4];
 
@@ -44,11 +41,15 @@ public class KeystoneController : MonoBehaviour
 	public bool _debug = false;
 	private float speed = 0.001f;
 
-	private float q0; 
-	private float q1; 
-	private float q2;
-	private float q3;
+	GameObject debugIntersectionSphere;
 
+	Vector2[]  texCoords = new Vector2[] {
+		new Vector2(0, 0),
+		new Vector2 (0, 1),
+		new Vector2 (1 , 1),
+		new Vector2 (1, 0)
+	};
+		
 	/// <summary>
 	/// Start this instance.
 	/// </summary>
@@ -60,7 +61,8 @@ public class KeystoneController : MonoBehaviour
 		transform.gameObject.AddComponent <MeshCollider> (); //add new collider 
 	
 		mesh = GetComponent<MeshFilter> ().mesh; // get this GO mesh
-		mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };	
+		//mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };	
+		mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };
 		LoadSettings ();
 
 		CornerMaker (); //make the corners for visual controls 
@@ -89,36 +91,22 @@ public class KeystoneController : MonoBehaviour
 	private void SetupMesh() {
 		mesh.vertices = vertices;
 
-		// Zero out the left and bottom edges, 
-		// leaving a right trapezoid with two sides on the axes and a vertex at the origin.
+		float q0 = 1;
+		float q1 = (vertices [1].y - vertices [0].y);
+		float q2 = (vertices [2].x - vertices [1].x) * (vertices [2].y - vertices [3].y);
+		float q3 = (vertices [3].x - vertices [0].x);
 
-		q0 = 1;
-		q1 = (vertices [1].y - vertices [0].y);
-		q2 = (vertices [2].x - vertices [1].x) * (vertices [2].y - vertices [3].y);
-		q3 = (vertices [3].x - vertices [0].x);
-
-		q0 = 1;
-		q1 = 1;
-		q2 = 1;
-		q3 = 1;
-
-//		Vector2[]  shiftedPositions = new Vector2[] {
-//			new Vector2(0, 0),
-//			new Vector2 (0, q1),
-//			new Vector2 (q2 / (vertices [2].y - vertices [3].y), q2 / (vertices [2].x - vertices [1].x)),
-//			new Vector2 (q3, 0)
-//		};
-
-		Vector2[]  shiftedPositions = new Vector2[] {
+		Vector2[] vertexPositions = new Vector2[] {
 			new Vector2(0, 0),
 			new Vector2 (0, q1),
-			new Vector2 (q2 , q2),
+			new Vector2 (q2 / (vertices [2].y - vertices [3].y), q2 / (vertices [2].x - vertices [1].x)),
 			new Vector2 (q3, 0)
 		};
+
 			
-		if (IsIntersecting(shiftedPositions[1], shiftedPositions[0], shiftedPositions[3], shiftedPositions[2]))
+		if (IsIntersecting(vertexPositions[1], vertexPositions[0], vertexPositions[3], vertexPositions[2]))
 		{
-			Debug.Log ("Mua = " + mua + " Mub = " + mub);
+			Debug.Log ("Intersection found.");
 		}
 
 		// http://www.reedbeta.com/blog/2012/05/26/quadrilateral-interpolation-part-1/
@@ -130,29 +118,16 @@ public class KeystoneController : MonoBehaviour
 		q[2] = (d [2] + d [0]) / d [0];
 		q[3] = (d [3] + d [1]) / d [1];
 
-
-		for (int i = 0; i < shiftedPositions.Length; i++) {
-			shiftedPositions [i] *= q [i];
-		}
-
-		List<Vector3> shiftedPositionsV3 = new List<Vector3> {
-			new Vector3(shiftedPositions[0].x, shiftedPositions[0].y, q[0]),
-			new Vector3 (shiftedPositions[1].x, shiftedPositions[1].y, q[1]),
-			new Vector3 (shiftedPositions[2].x, shiftedPositions[2].y, q[2]),
-			new Vector3 (shiftedPositions[3].x, shiftedPositions[3].y, q[3])
+		List<Vector3> texCoordsV3 = new List<Vector3> {
+			new Vector3(texCoords[0].x * q[0], texCoords[0].y * q[0], q[0]),
+			new Vector3 (texCoords[1].x * q[1], texCoords[1].y * q[1], q[1]),
+			new Vector3 (texCoords[2].x * q[2], texCoords[2].y * q[2], q[2]),
+			new Vector3 (texCoords[3].x * q[3], texCoords[3].y * q[3], q[3])
 		};
 
-		mesh.SetUVs (0, shiftedPositionsV3);
+		mesh.SetUVs (0, texCoordsV3);
 		//mesh.uv = shiftedPositions;
 
-		Vector2[] qs = new Vector2[] {
-			new Vector2(q[0], 1),
-			new Vector2(q[1], 1),
-			new Vector2(q[2], 1),
-			new Vector2(q[3], 1)
-		};
-
-		mesh.uv2 = qs;
 
 		transform.GetComponent<MeshCollider> ().sharedMesh = mesh;
 	}
@@ -183,22 +158,22 @@ public class KeystoneController : MonoBehaviour
 
 		float V1cV2 = GetCrossProduct (V1, V2);
 
-		mua = (GetCrossProduct(P21,V2)) / (V1cV2);
-		mub = (GetCrossProduct(-P21, V1)) / (V1cV2);
+		float mua = (GetCrossProduct(P21,V2)) / (V1cV2);
+		float mub = (GetCrossProduct(-P21, V1)) / (V1cV2);
 
 		Vector2 pIntersection = p1 + mua * V1;
 
 		if (_debug) {
-			var obj = GameObject.CreatePrimitive (PrimitiveType.Sphere);
-			obj.transform.position = pIntersection;
-			obj.transform.localScale = new Vector3 (0.1f, 0.1f, 0.1f);
-			obj.GetComponent<Renderer> ().material.color = Color.green;
+			debugIntersectionSphere = GameObject.CreatePrimitive (PrimitiveType.Sphere);
+			debugIntersectionSphere.transform.position = pIntersection;
+			debugIntersectionSphere.transform.localScale = new Vector3 (0.1f, 0.1f, 0.1f);
+			debugIntersectionSphere.GetComponent<Renderer> ().material.color = Color.green;
 		}
 
 		d[0] = Vector2.Distance(pIntersection, p2);
-		d [1] = Vector2.Distance(pIntersection, p1);
-		d [2] = Vector2.Distance(pIntersection, p4);
-		d [3] = Vector2.Distance(pIntersection, p3);
+		d[1] = Vector2.Distance(pIntersection, p1);
+		d[2] = Vector2.Distance(pIntersection, p4);
+		d[3] = Vector2.Distance(pIntersection, p3);
 
 		return true;
 	}
@@ -207,12 +182,10 @@ public class KeystoneController : MonoBehaviour
 	/// From http://james-ramsden.com/calculate-the-cross-product-c-code/
 	/// </summary>
 	/// <returns>The cross product.</returns>
-	/// <param name="v1">V1.</param>
-	/// <param name="v2">V2.</param>
 	private float GetCrossProduct(Vector2 v1, Vector2 v2)
 	{
-		float rtnvector = (v1.x * v2.y - v2.x * v1.y);
-		return rtnvector;
+		float cross = (v1.x * v2.y - v2.x * v1.y);
+		return cross;
 	}
 
 
