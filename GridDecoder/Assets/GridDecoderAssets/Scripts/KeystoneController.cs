@@ -126,8 +126,6 @@ public class KeystoneController : MonoBehaviour
 		};
 
 		mesh.SetUVs (0, texCoordsV3);
-		//mesh.uv = shiftedPositions;
-
 
 		transform.GetComponent<MeshCollider> ().sharedMesh = mesh;
 	}
