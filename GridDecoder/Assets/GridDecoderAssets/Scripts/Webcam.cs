@@ -45,7 +45,8 @@ public class Webcam : MonoBehaviour
 
     public static void Stop()
     {
-        webcamera.Stop();
+		if (webcamera)
+        	webcamera.Stop();
     }
 }
 
