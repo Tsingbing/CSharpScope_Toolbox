@@ -121,7 +121,6 @@ public class Scanners : MonoBehaviour
 		currentIds = new int[numOfScannersX / _gridSize, numOfScannersY / _gridSize];
 		sampleCubes = new GameObject[4];
 		SetSampleObjects ();
-		LoadSamplers ();
 		MakeScanners ();
 
 		// Find copy mesh with RenderTexture
@@ -131,6 +130,8 @@ public class Scanners : MonoBehaviour
 
 		_texture = new Texture2D (GetComponent<Renderer> ().material.mainTexture.width, 
 			GetComponent<Renderer> ().material.mainTexture.height);
+
+		LoadSamplers ();
 	}
 
 	/// <summary>
@@ -141,6 +142,7 @@ public class Scanners : MonoBehaviour
 			if (setup) { 
 				sampleCubes [i].transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale); 
 				sampleCubes [i].transform.position = new Vector3(sampleCubes [i].transform.position.x, keystonedQuad.transform.position.y + 0.2f, sampleCubes [i].transform.position.z);
+				LoadSamplers ();
 			}
 			if (Physics.Raycast (sampleCubes[i].transform.position, Vector3.down, out hit, 6)) {
 				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
@@ -330,8 +332,9 @@ public class Scanners : MonoBehaviour
 		
 		for (int i = 0; i < sampleCubes.Length; i++) {
 			sampleCubes [i].transform.position = colorSettings.position [i];
-			sampleCubes[i].transform.localScale = new Vector3 (colorSettings.scannerScale, colorSettings.scannerScale, colorSettings.scannerScale);
+			sampleCubes[i].transform.localScale = new Vector3 (colorSettings.scannerScale, colorSettings.scannerScale * 20, colorSettings.scannerScale);
 		}
+			
 	}
 
 	/// <summary>
