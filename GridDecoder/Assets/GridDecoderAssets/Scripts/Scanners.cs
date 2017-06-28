@@ -120,6 +120,8 @@ public class Scanners : MonoBehaviour
 		scannersList = new GameObject[numOfScannersX, numOfScannersY];
 		currentIds = new int[numOfScannersX / _gridSize, numOfScannersY / _gridSize];
 		sampleCubes = new GameObject[4];
+		SetSampleObjects ();
+		LoadSamplers ();
 		MakeScanners ();
 
 		// Find copy mesh with RenderTexture
@@ -135,8 +137,6 @@ public class Scanners : MonoBehaviour
 	/// Calibrates the colors based on sample points.
 	/// </summary>
 	private void CalibrateColors() {
-		SetSampleObjects ();
-
 		for (int i = 0; i < sampleCubes.Length; i++) {
 			if (setup) { 
 				sampleCubes [i].transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale); 
