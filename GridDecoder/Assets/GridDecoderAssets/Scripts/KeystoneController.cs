@@ -91,7 +91,7 @@ public class KeystoneController : MonoBehaviour
 	private void SetupMesh() {
 		mesh.vertices = vertices;
 
-		float q0 = 1;
+		float q0 = vertices [0].x;
 		float q1 = (vertices [1].y - vertices [0].y);
 		float q2 = (vertices [2].x - vertices [1].x) * (vertices [2].y - vertices [3].y);
 		float q3 = (vertices [3].x - vertices [0].x);
@@ -102,6 +102,20 @@ public class KeystoneController : MonoBehaviour
 			new Vector2 (q2 / (vertices [2].y - vertices [3].y), q2 / (vertices [2].x - vertices [1].x)),
 			new Vector2 (q3, 0)
 		};
+//
+//		Vector2[] vertexPositions = new Vector2[] {
+//			new Vector2 (vertices[0].x, vertices[1].y),
+//			new Vector2 (vertices [1].x, vertices [1].y - vertices [0].y),
+//			new Vector2 (vertices [2].x - vertices [0].x, vertices [2].y - vertices [0].y),
+//			new Vector2 (vertices [3].x - vertices [0].x, vertices [1].y)
+//		};
+
+		for (int i = 0; i < vertexPositions.Length; i++) {
+			if (vertexPositions [i].x < 0)
+				vertexPositions [i].x *= (-1f);
+			if (vertexPositions [i].y < 0)
+				vertexPositions [i].y *= (-1f);
+		}
 
 			
 		if (IsIntersecting(vertexPositions[1], vertexPositions[0], vertexPositions[3], vertexPositions[2]))
@@ -289,11 +303,11 @@ public class KeystoneController : MonoBehaviour
 				Debug.Log ("Selection changed to " + selectedCorner.ToString ());
 		}
 
-		if (Input.GetKey (KeyCode.LeftShift))
+		if (Input.GetKeyDown (KeyCode.LeftShift))
 			speed *= 10;
-		else if (Input.GetKey (KeyCode.LeftControl) && Input.GetKey (KeyCode.LeftAlt))
+		else if (Input.GetKeyDown (KeyCode.LeftControl) && Input.GetKey (KeyCode.LeftAlt))
 			speed *= 0.1f;
-		else if (Input.GetKey (KeyCode.LeftAlt))
+		else if (Input.GetKeyDown (KeyCode.LeftAlt))
 			speed *= 0.01f; 
 
 		var v = vertices [selectedCorner];
