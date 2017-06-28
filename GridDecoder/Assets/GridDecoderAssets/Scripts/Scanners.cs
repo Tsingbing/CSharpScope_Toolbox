@@ -76,7 +76,7 @@ public class Scanners : MonoBehaviour
 
 	IEnumerator Start ()
 	{
-		initVariables ();
+		InitVariables ();
 		EventManager.StartListening ("reload", OnReload);
 	
 		while (true) {
@@ -87,23 +87,20 @@ public class Scanners : MonoBehaviour
 			// Assign render texture from keystoned quad texture copy & copy it to a Texture2D
 			AssignRenderTexture();
 
-			if (_isCalibrating) {
+			if (_isCalibrating)
 				CalibrateColors ();
-			} 
-			else {
-				// Assign scanner colors
-				ScanColors();
 
-				if (_debug)
-					PrintMatrix ();
-			}
+			// Assign scanner colors
+			ScanColors();
+
+			if (_debug)
+				PrintMatrix ();
+			
 			if (setup)
 				setup = false;
 
 			if (Time.frameCount % 30 == 0)
-			{
 				System.GC.Collect();
-			}
 		}
 	}
 
@@ -117,7 +114,7 @@ public class Scanners : MonoBehaviour
 	/// <summary>
 	/// Initializes the variables.
 	/// </summary>
-	private void initVariables() {
+	private void InitVariables() {
 		numOfScannersX = _gridSizeX * 2;
 		numOfScannersY = _gridSizeY * 2;
 		scannersList = new GameObject[numOfScannersX, numOfScannersY];
