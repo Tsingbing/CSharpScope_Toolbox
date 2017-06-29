@@ -60,8 +60,54 @@ public class ColorClassifier {
 		return currColor;
 	}
 
-	public 
 
+	/// <summary>
+	/// Sorts the colors.
+	/// Python
+	/// </summary>
+	public Vector3 ToCustomHSV(Color rgbColor) {
+		float H, S, V;
+		Color.RGBToHSV(rgbColor, out H, out S, out V);
+
+		float lum = (float)Math.Sqrt (0.241f * rgbColor.r + 0.691f * rgbColor.g + 0.068f * rgbColor.b);
+		Vector3 hsvVector = new Vector3 (H * 5, lum * 5, V * 5);
+
+		return hsvVector;
+	}
+
+	public void SortColors(Color[] colors) {
+		Dictionary<int, Vector3> hsvColors = new Dictionary<int, Vector3> ();
+
+		for (int i = 0; i < colors.Length; i++) {
+			hsvColors [i] = ToCustomHSV (colors [i]);
+		}
+
+		//IEnumerable<Vector3> sorted = hsvColors.OrderBy(v => v.Value);
+		Dictionary<int, Vector3> hsvColorsSorted = hsvColors.OrderBy(x => x.Value.x).ToDictionary(x => x.Key, x => x.Value);
+
+		int index = 0;
+		foreach (var item in hsvColorsSorted) {
+			var debugColorCube = GameObject.CreatePrimitive (PrimitiveType.Quad);
+			debugColorCube.transform.localScale = new Vector3 (2, 50, 1);  
+			debugColorCube.transform.position = new Vector3 (index++ * 3, 0, -100);
+			debugColorCube.transform.Rotate (90, 0, 0); 
+			Color rgbColor = colors [item.Key];
+			debugColorCube.GetComponent<Renderer> ().material.color = rgbColor;
+		}
+
+		//IEnumerable<Vector3> sorted = hsvColors.OrderBy(v => v.Value);
+		Dictionary<int, Vector3> hsvColorsSortedL = hsvColors.OrderBy(x => x.Value.y).ToDictionary(x => x.Key, x => x.Value);
+
+		index = 0;
+		foreach (var item in hsvColorsSortedL) {
+			var debugColorCube = GameObject.CreatePrimitive (PrimitiveType.Quad);
+			debugColorCube.transform.localScale = new Vector3 (2, 50, 1);  
+			debugColorCube.transform.position = new Vector3 (index++ * 3, 0, -200);
+			debugColorCube.transform.Rotate (90, 0, 0); 
+			Color rgbColor = colors [item.Key];
+			debugColorCube.GetComponent<Renderer> ().material.color = rgbColor;
+		}
+	}
 
 }
 
@@ -109,6 +155,8 @@ public class Scanners : MonoBehaviour
 	public string _colorSettingsFileName = "_sampleColorSettings.json";
 
 	private Texture2D hitTex;
+
+	private Color[] allColors;
 
 	enum Brick { RL = 0, RM = 1, RS = 2, OL = 3, OM = 4, OS = 5, ROAD = 6 };
 
@@ -167,6 +215,7 @@ public class Scanners : MonoBehaviour
 		numOfScannersX = _gridSizeX * 2;
 		numOfScannersY = _gridSizeY * 2;
 		scannersList = new GameObject[numOfScannersX, numOfScannersY];
+		allColors = new Color[numOfScannersX * numOfScannersY];
 		currentIds = new int[numOfScannersX / _gridSize, numOfScannersY / _gridSize];
 		sampleCubes = new GameObject[4];
 		SetSampleObjects ();
@@ -244,6 +293,9 @@ public class Scanners : MonoBehaviour
 				}
 			}
 		}
+
+		//if (setup)
+			colorClassifier.SortColors (allColors);
 	}
 
 
@@ -286,6 +338,7 @@ public class Scanners : MonoBehaviour
 				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
 				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
 				Color pixel = hitTex.GetPixel (_locX, _locY);
+				allColors [i + numOfScannersX * j] = pixel;
 				int currID = colorClassifier.GetClosestColorId (pixel);
 				Color minColor = colorClassifier.GetColor (currID);
 
