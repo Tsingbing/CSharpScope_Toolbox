@@ -39,10 +39,11 @@
             return output;
         }
  
-        float4 frag(vertexOutput input) : COLOR
+      float4 frag(vertexOutput input) : COLOR
         {    
-            return  tex2D(_MainTex, float2(input.uv)/float2(input.uv2)); 
+           // return  tex2D(_MainTex, float2(input.uv)/float2(input.uv2)); 
             //to fix using perspective correction
+            return  tex2D(_MainTex, float2(input.uv)/(float2(input.uv2)/float2(input.uv))); 
         }
 
          ENDCG // here ends the part in Cg
