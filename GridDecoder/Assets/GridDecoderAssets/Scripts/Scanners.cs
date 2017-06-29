@@ -28,9 +28,10 @@ public class ColorClassifier {
 	/// </summary>
 	/// <returns>The closest color's index in the colors array.</returns>
 	/// <param name="pixel">Pixel.</param>
-	public Color ClosestColor(Color pixel, int minColorID) {
+	public int GetClosestColorId(Color pixel) {
 		Vector3 currPixel = new Vector3 (pixel.r, pixel.g, pixel.b);
 		double minDistance = Double.PositiveInfinity;
+		int minColorID = -1;
 
 		for (int i = 0; i < sampledColors.Length; i++) {
 			double currDistance = Vector3.Distance (sampledColors [i], currPixel);
@@ -40,8 +41,7 @@ public class ColorClassifier {
 			}
 		}
 
-		Color minColor = new Color(sampledColors [minColorID].x, sampledColors [minColorID].y, sampledColors [minColorID].z);
-		return minColor;
+		return minColorID;
 	}
 
 	/// <summary>
@@ -50,6 +50,18 @@ public class ColorClassifier {
 	public void SetSampledColors(int index, Color pixel) {
 		sampledColors[index] =  new Vector3 (pixel.r, pixel.g, pixel.b);
 	}
+
+	/// <summary>
+	/// Gets the color.
+	/// </summary>
+	/// <returns>The color.</returns>
+	public Color GetColor(int id) {
+		Color currColor = new Color (sampledColors [id].x, sampledColors [id].y, sampledColors [id].z);
+		return currColor;
+	}
+
+	public 
+
 
 }
 
@@ -249,6 +261,8 @@ public class Scanners : MonoBehaviour
 		for (int i = 0; i < currentIds.GetLength(0); i++) {
 			for (int j = 0; j < currentIds.GetLength(1); j++) {
 				matrix += currentIds [i, j] + "";
+				if (currentIds [i, j] >= 0)
+					matrix += " ";
 			}
 			matrix += "\n";
 		}
@@ -272,11 +286,12 @@ public class Scanners : MonoBehaviour
 				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
 				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
 				Color pixel = hitTex.GetPixel (_locX, _locY);
-				int currID = -1;
-				Color currPixel = colorClassifier.ClosestColor (pixel, currID);
+				int currID = colorClassifier.GetClosestColorId (pixel);
+				Color minColor = colorClassifier.GetColor (currID);
+
 
 				//paint scanner with the found color 
-				scannersList [i, j].GetComponent<Renderer> ().material.color = currPixel;
+				scannersList [i, j].GetComponent<Renderer> ().material.color = minColor;
 
 				if (_showRays) {
 					Debug.DrawLine (scannersList [i, j].transform.position, hit.point, pixel, 200, false);
