@@ -13,6 +13,47 @@ public class ColorSettings {
 	public float scannerScale;
 }
 
+public class ColorClassifier {
+	public Vector2[] colorRanges;
+
+	// red, black, white, gray
+	// 0 - white
+	// 1 - black
+	// 2 - red
+	// 3 - unknown / gray
+	private Vector3[] sampledColors = new Vector3[4];
+
+	/// <summary>
+	/// Finds the closest color to the given scan colors.
+	/// </summary>
+	/// <returns>The closest color's index in the colors array.</returns>
+	/// <param name="pixel">Pixel.</param>
+	public Color ClosestColor(Color pixel, int minColorID) {
+		Vector3 currPixel = new Vector3 (pixel.r, pixel.g, pixel.b);
+		double minDistance = Double.PositiveInfinity;
+
+		for (int i = 0; i < sampledColors.Length; i++) {
+			double currDistance = Vector3.Distance (sampledColors [i], currPixel);
+			if (currDistance < minDistance) {
+				minDistance = currDistance;
+				minColorID = i;
+			}
+		}
+
+		Color minColor = new Color(sampledColors [minColorID].x, sampledColors [minColorID].y, sampledColors [minColorID].z);
+		return minColor;
+	}
+
+	/// <summary>
+	/// Sets the sampled colors.
+	/// </summary>
+	public void SetSampledColors(int index, Color pixel) {
+		sampledColors[index] =  new Vector3 (pixel.r, pixel.g, pixel.b);
+	}
+
+}
+
+
 public class Scanners : MonoBehaviour
 {
 	// webcam and scanner vars
@@ -24,41 +65,37 @@ public class Scanners : MonoBehaviour
 	public int _gridSizeY;
 	private int numOfScannersX;
 	private int numOfScannersY;
+
 	private GameObject _scanner;
 	RaycastHit hit;
 	RenderTexture rTex;
 	Texture2D _texture;
 	GameObject keystonedQuad;
 
-	public int _refreshRate = 10;
+	public float _refreshRate = 1;
 	public float _scannerScale = 0.5f;
 	public bool _useWebcam;
 	public bool _showRays = false;
-	public float xOffset = 0;
-	public float zOffset = 0;
 	public bool _debug = true;
 	public bool _isCalibrating;
-	public int _gridSize = 2; // i.e. 2x2 reading for one cell
+	int _gridSize = 2; // i.e. 2x2 reading for one cell
 
 	private bool setup = true;
 
 	// Color calibration
 	ColorSettings colorSettings = new ColorSettings();
+	ColorClassifier colorClassifier = new ColorClassifier ();
+
 	GameObject[] sampleCubes = new GameObject[4];
 	private string colorRedName = "Sample red";
 	private string colorBlackName = "Sample black";
 	private string colorWhiteName = "Sample white";
 	private string colorGrayName = "Sample gray";
+
 	private string colorTexturedQuadName = "KeystonedTextureQuad";
 
 	public string _colorSettingsFileName = "_sampleColorSettings.json";
 
-	// red, black, white, gray
-	// 0 - white
-	// 1 - black
-	// 2 - red
-	// 3 - unknown / gray
-	private Vector3[] sampledColors = new Vector3[4];
 	private Texture2D hitTex;
 
 	enum Brick { RL = 0, RM = 1, RS = 2, OL = 3, OM = 4, OS = 5, ROAD = 6 };
@@ -149,7 +186,7 @@ public class Scanners : MonoBehaviour
 				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
 				Color pixel = hitTex.GetPixel (_locX, _locY);
 				sampleCubes [i].GetComponent<Renderer> ().material.color = pixel;
-				sampledColors[i] =  new Vector3 (pixel.r, pixel.g, pixel.b);
+				colorClassifier.SetSampledColors (i, pixel);
 			}
 		}
 	}
@@ -171,7 +208,7 @@ public class Scanners : MonoBehaviour
 				key = "";
 				for (int k = 0; k < _gridSize; k++) {
 					for (int m = 0; m < _gridSize; m++) {
-						key += findColor (i + k, j + m); 
+						key += FindColor (i + k, j + m); 
 					}
 				} 
 					
@@ -223,7 +260,7 @@ public class Scanners : MonoBehaviour
 	/// </summary>
 	/// <param name="i">The row index.</param>
 	/// <param name="j">The column index.</param>
-	private int findColor(int i, int j) {
+	private int FindColor(int i, int j) {
 		if (Physics.Raycast (scannersList [i, j].transform.position, Vector3.down, out hit, 6)) {
 			// Get local tex coords w.r.t. triangle
 
@@ -235,8 +272,8 @@ public class Scanners : MonoBehaviour
 				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
 				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
 				Color pixel = hitTex.GetPixel (_locX, _locY);
-				int pixelID = ClosestColor (pixel);
-				Color currPixel = new Color(sampledColors [pixelID].x, sampledColors [pixelID].y, sampledColors [pixelID].z);
+				int currID = -1;
+				Color currPixel = colorClassifier.ClosestColor (pixel, currID);
 
 				//paint scanner with the found color 
 				scannersList [i, j].GetComponent<Renderer> ().material.color = currPixel;
@@ -245,7 +282,7 @@ public class Scanners : MonoBehaviour
 					Debug.DrawLine (scannersList [i, j].transform.position, hit.point, pixel, 200, false);
 					Debug.Log (hit.point);
 				}
-				return pixelID;
+				return currID;
 			}
 		} else { 
 			scannersList [i, j].GetComponent<Renderer> ().material.color = Color.magenta; //paint scanner with Out of bounds  color 
@@ -280,26 +317,6 @@ public class Scanners : MonoBehaviour
 			_texture.SetPixels ((GetComponent<Renderer> ().material.mainTexture as Texture2D).GetPixels ()); // for texture map 
 		};
 		_texture.Apply ();
-	}
-
-	/// <summary>
-	/// Finds the closest color to the given scan colors.
-	/// </summary>
-	/// <returns>The closest color's index in the colors array.</returns>
-	/// <param name="pixel">Pixel.</param>
-	private int ClosestColor(Color pixel) {
-		Vector3 currPixel = new Vector3 (pixel.r, pixel.g, pixel.b);
-		double minDistance = Double.PositiveInfinity;
-		int minColor = -1;
-
-		for (int i = 0; i < sampledColors.Length; i++) {
-			double currDistance = Vector3.Distance (sampledColors [i], currPixel);
-			if (currDistance < minDistance) {
-				minDistance = currDistance;
-				minColor = i;
-			}
-		}
-		return minColor;
 	}
 
 	/// <summary>
