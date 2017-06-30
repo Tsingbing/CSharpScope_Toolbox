@@ -15,13 +15,18 @@ public class ColorSettings {
 
 public class ColorClassifier {
 	public Vector2[] colorRanges;
+	private GameObject[] debugColorObjectsH;
+	private GameObject[] debugColorObjectsL;
+	Dictionary<int, Vector3> hsvColors;
 
-	// red, black, white, gray
+	private string colorScaleParentName = "Color scale";
+	GameObject colorScaleParent;
+
+	// red, black, white
 	// 0 - white
 	// 1 - black
 	// 2 - red
-	// 3 - unknown / gray
-	private Vector3[] sampledColors = new Vector3[4];
+	private Vector3[] sampledColors = new Vector3[3];
 
 	/// <summary>
 	/// Finds the closest color to the given scan colors.
@@ -40,7 +45,6 @@ public class ColorClassifier {
 				minColorID = i;
 			}
 		}
-
 		return minColorID;
 	}
 
@@ -69,46 +73,66 @@ public class ColorClassifier {
 		float H, S, V;
 		Color.RGBToHSV(rgbColor, out H, out S, out V);
 
-		float lum = (float)Math.Sqrt (0.241f * rgbColor.r + 0.691f * rgbColor.g + 0.068f * rgbColor.b);
-		Vector3 hsvVector = new Vector3 (H * 5, lum * 5, V * 5);
+		float lum = (float) Math.Sqrt (0.241f * rgbColor.r + 0.691f * rgbColor.g + 0.068f * rgbColor.b);
+		//Vector3 hsvVector = new Vector3 ((int)(H * 7), (int)(lum * 7), (int)(V * 7));
+		Vector3 hsvVector = new Vector3 ((H * 7), (lum * 7), (V * 7));
+		//Vector3 hsvVector = new Vector3 (H, S, V);
 
 		return hsvVector;
 	}
 
+	private void createDebugObjects(int length) {
+		if (debugColorObjectsH == null) {
+			float sizeX = 0.05f;
+			float sizeY = 2f;
+			float locationZ = -20;
+			float locationX = -30;
+
+			colorScaleParent = GameObject.Find (colorScaleParentName);
+			debugColorObjectsH = new GameObject[length];
+			debugColorObjectsL = new GameObject[length];
+
+			for (int i = 0; i < length; i++) {
+				debugColorObjectsH [i] = GameObject.CreatePrimitive (PrimitiveType.Quad);
+				debugColorObjectsH [i].transform.localScale = new Vector3 (sizeX, sizeY, 1);  
+				debugColorObjectsH [i].transform.position = new Vector3 (i * sizeX + locationX, 0, locationZ);
+				debugColorObjectsH [i].transform.Rotate (90, 0, 0); 
+				debugColorObjectsH [i].transform.parent = colorScaleParent.transform;
+
+				debugColorObjectsL [i] = GameObject.CreatePrimitive (PrimitiveType.Quad);
+				debugColorObjectsL [i].transform.localScale = new Vector3 (sizeX, sizeY, 1);  
+				debugColorObjectsL [i].transform.position = new Vector3 (i * sizeX + locationX, 0, locationZ + sizeY * 2);
+				debugColorObjectsL [i].transform.Rotate (90, 0, 0); 
+				debugColorObjectsL [i].transform.parent = colorScaleParent.transform;
+			}
+
+			hsvColors = new Dictionary<int, Vector3> ();
+		}
+	}
+
 	public void SortColors(Color[] colors) {
-		Dictionary<int, Vector3> hsvColors = new Dictionary<int, Vector3> ();
+		createDebugObjects (colors.Length);
 
 		for (int i = 0; i < colors.Length; i++) {
 			hsvColors [i] = ToCustomHSV (colors [i]);
 		}
 
-		//IEnumerable<Vector3> sorted = hsvColors.OrderBy(v => v.Value);
 		Dictionary<int, Vector3> hsvColorsSorted = hsvColors.OrderBy(x => x.Value.x).ToDictionary(x => x.Key, x => x.Value);
 
 		int index = 0;
 		foreach (var item in hsvColorsSorted) {
-			var debugColorCube = GameObject.CreatePrimitive (PrimitiveType.Quad);
-			debugColorCube.transform.localScale = new Vector3 (2, 50, 1);  
-			debugColorCube.transform.position = new Vector3 (index++ * 3, 0, -100);
-			debugColorCube.transform.Rotate (90, 0, 0); 
 			Color rgbColor = colors [item.Key];
-			debugColorCube.GetComponent<Renderer> ().material.color = rgbColor;
+			debugColorObjectsH[index++].GetComponent<Renderer> ().material.color = rgbColor;
 		}
 
-		//IEnumerable<Vector3> sorted = hsvColors.OrderBy(v => v.Value);
 		Dictionary<int, Vector3> hsvColorsSortedL = hsvColors.OrderBy(x => x.Value.y).ToDictionary(x => x.Key, x => x.Value);
 
 		index = 0;
 		foreach (var item in hsvColorsSortedL) {
-			var debugColorCube = GameObject.CreatePrimitive (PrimitiveType.Quad);
-			debugColorCube.transform.localScale = new Vector3 (2, 50, 1);  
-			debugColorCube.transform.position = new Vector3 (index++ * 3, 0, -200);
-			debugColorCube.transform.Rotate (90, 0, 0); 
 			Color rgbColor = colors [item.Key];
-			debugColorCube.GetComponent<Renderer> ().material.color = rgbColor;
+			debugColorObjectsL[index++].GetComponent<Renderer> ().material.color = rgbColor;
 		}
 	}
-
 }
 
 
@@ -144,11 +168,10 @@ public class Scanners : MonoBehaviour
 	ColorSettings colorSettings = new ColorSettings();
 	ColorClassifier colorClassifier = new ColorClassifier ();
 
-	GameObject[] sampleCubes = new GameObject[4];
+	GameObject[] sampleCubes = new GameObject[3];
 	private string colorRedName = "Sample red";
 	private string colorBlackName = "Sample black";
 	private string colorWhiteName = "Sample white";
-	private string colorGrayName = "Sample gray";
 
 	private string colorTexturedQuadName = "KeystonedTextureQuad";
 
@@ -212,12 +235,12 @@ public class Scanners : MonoBehaviour
 	/// Initializes the variables.
 	/// </summary>
 	private void InitVariables() {
-		numOfScannersX = _gridSizeX * 2;
-		numOfScannersY = _gridSizeY * 2;
+		numOfScannersX = _gridSizeX * _gridSize;
+		numOfScannersY = _gridSizeY * _gridSize;
 		scannersList = new GameObject[numOfScannersX, numOfScannersY];
 		allColors = new Color[numOfScannersX * numOfScannersY];
 		currentIds = new int[numOfScannersX / _gridSize, numOfScannersY / _gridSize];
-		sampleCubes = new GameObject[4];
+		sampleCubes = new GameObject[3];
 		SetSampleObjects ();
 		MakeScanners ();
 
@@ -256,7 +279,6 @@ public class Scanners : MonoBehaviour
 		sampleCubes[0] = GameObject.Find (colorWhiteName);
 		sampleCubes[1] = GameObject.Find (colorBlackName);
 		sampleCubes[2] = GameObject.Find (colorRedName);
-		sampleCubes[3] = GameObject.Find (colorGrayName);
 	}
 
 	/// <summary>
@@ -294,7 +316,7 @@ public class Scanners : MonoBehaviour
 			}
 		}
 
-		//if (setup)
+		if (_debug)
 			colorClassifier.SortColors (allColors);
 	}
 
