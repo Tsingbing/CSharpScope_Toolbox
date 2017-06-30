@@ -9,8 +9,11 @@ using System.Linq;
 [System.Serializable]
 public class ColorSettings {
 	// Color sample objects
-	public Vector3[] position = new Vector3[4];
-	public float scannerScale;
+	public Vector3[] position;
+
+	public ColorSettings(int positionSize) {
+		position = new Vector3[positionSize];
+	}
 }
 
 public class ColorClassifier {
@@ -19,14 +22,16 @@ public class ColorClassifier {
 	private GameObject[] debugColorObjectsL;
 	Dictionary<int, Vector3> hsvColors;
 
-	private string colorScaleParentName = "Color scale";
-	GameObject colorScaleParent;
+	private string colorScaleParentName = "Scale visualization";
+	public GameObject colorScaleParent;
 
 	// red, black, white
 	// 0 - white
 	// 1 - black
 	// 2 - red
-	private Vector3[] sampledColors = new Vector3[3];
+	// %3
+	public static int NUM_SAMPLED_COLORS = 6;
+	private Vector3[] sampledColors = new Vector3[NUM_SAMPLED_COLORS];
 
 	/// <summary>
 	/// Finds the closest color to the given scan colors.
@@ -45,7 +50,7 @@ public class ColorClassifier {
 				minColorID = i;
 			}
 		}
-		return minColorID;
+		return minColorID % 3;
 	}
 
 	/// <summary>
@@ -83,14 +88,14 @@ public class ColorClassifier {
 
 	private void createDebugObjects(int length) {
 		if (debugColorObjectsH == null) {
-			float sizeX = 0.05f;
+			float sizeX = 0.005f;
 			float sizeY = 2f;
-			float locationZ = -20;
-			float locationX = -30;
+			float locationZ = -10;
 
 			colorScaleParent = GameObject.Find (colorScaleParentName);
 			debugColorObjectsH = new GameObject[length];
 			debugColorObjectsL = new GameObject[length];
+			float locationX = colorScaleParent.transform.position.x;
 
 			for (int i = 0; i < length; i++) {
 				debugColorObjectsH [i] = GameObject.CreatePrimitive (PrimitiveType.Quad);
@@ -165,13 +170,11 @@ public class Scanners : MonoBehaviour
 	private bool setup = true;
 
 	// Color calibration
-	ColorSettings colorSettings = new ColorSettings();
+	ColorSettings colorSettings;
 	ColorClassifier colorClassifier = new ColorClassifier ();
 
-	GameObject[] sampleCubes = new GameObject[3];
-	private string colorRedName = "Sample red";
-	private string colorBlackName = "Sample black";
-	private string colorWhiteName = "Sample white";
+	GameObject[] sampleCubes;
+	public GameObject _colorSamplerParent;
 
 	private string colorTexturedQuadName = "KeystonedTextureQuad";
 
@@ -240,8 +243,8 @@ public class Scanners : MonoBehaviour
 		scannersList = new GameObject[numOfScannersX, numOfScannersY];
 		allColors = new Color[numOfScannersX * numOfScannersY];
 		currentIds = new int[numOfScannersX / _gridSize, numOfScannersY / _gridSize];
-		sampleCubes = new GameObject[3];
-		SetSampleObjects ();
+		sampleCubes = new GameObject[ColorClassifier.NUM_SAMPLED_COLORS];
+		SetupSampleObjects ();
 		MakeScanners ();
 
 		// Find copy mesh with RenderTexture
@@ -260,24 +263,27 @@ public class Scanners : MonoBehaviour
 	/// </summary>
 	private void CalibrateColors() {
 		for (int i = 0; i < sampleCubes.Length; i++) {
-			if (setup) { 
-				sampleCubes [i].transform.localScale = new Vector3 (0.1f, 0.5f, 5); 
-				sampleCubes [i].transform.position = new Vector3(sampleCubes [i].transform.position.x, keystonedQuad.transform.position.y + 0.2f, sampleCubes [i].transform.position.z);
-				LoadSamplers ();
-			}
 			if (Physics.Raycast (sampleCubes[i].transform.position, Vector3.down, out hit, 60)) {
-				Color pixel = hit.collider.GetComponent<Renderer> ().material.color;
+				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
+				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
+				Color pixel = hitTex.GetPixel (_locX, _locY);
 				sampleCubes [i].GetComponent<Renderer> ().material.color = pixel;
 				colorClassifier.SetSampledColors (i, pixel);
-				//Debug.DrawLine (sampleCubes[i].transform.position, hit.point, pixel, 200, false);
 			}
 		}
 	}
 
-	private void SetSampleObjects() {
-		sampleCubes[0] = GameObject.Find (colorWhiteName);
-		sampleCubes[1] = GameObject.Find (colorBlackName);
-		sampleCubes[2] = GameObject.Find (colorRedName);
+	/// <summary>
+	/// Sets the sample objects.
+	/// </summary>
+	private void SetupSampleObjects() {
+		for (int i = 0; i < sampleCubes.Length; i++) {
+			sampleCubes [i] = GameObject.CreatePrimitive (PrimitiveType.Cube);
+			sampleCubes[i].name = "sample_" + i;
+			sampleCubes [i].transform.parent = _colorSamplerParent.transform;
+			sampleCubes [i].transform.localScale = new Vector3 (0.1f, 0.1f, 0.1f); 
+			sampleCubes [i].transform.position = new Vector3(0, sampleCubes [i].transform.parent.position.y + 0.2f, 0);
+		}
 	}
 
 	/// <summary>
@@ -435,10 +441,11 @@ public class Scanners : MonoBehaviour
 
 		string dataAsJson = JsonParser.loadJSON (_colorSettingsFileName, _debug);
 		colorSettings = JsonUtility.FromJson<ColorSettings>(dataAsJson);
-		
-		for (int i = 0; i < sampleCubes.Length; i++) {
+
+		if (colorSettings == null) return;
+
+		for (int i = 0; i < colorSettings.position.Length; i++) {
 			sampleCubes [i].transform.position = colorSettings.position [i];
-			//sampleCubes[i].transform.localScale = new Vector3 (colorSettings.scannerScale, colorSettings.scannerScale * 20, colorSettings.scannerScale);
 		}
 			
 	}
@@ -450,7 +457,9 @@ public class Scanners : MonoBehaviour
 		if (_debug)
 			Debug.Log ("Saving color sampling settings.");
 
-		colorSettings.scannerScale = _scannerScale;
+		if (colorSettings == null) {
+			colorSettings = new ColorSettings (sampleCubes.Length);
+		}
 
 		for (int i = 0; i < sampleCubes.Length; i++) {
 			colorSettings.position [i] = sampleCubes [i].transform.position;
@@ -480,7 +489,7 @@ public class Scanners : MonoBehaviour
 	void OnReload() {
 		Debug.Log ("Color config was reloaded!");
 
-		SetSampleObjects ();
+		SetupSampleObjects ();
 		LoadSamplers ();
 	}
 
