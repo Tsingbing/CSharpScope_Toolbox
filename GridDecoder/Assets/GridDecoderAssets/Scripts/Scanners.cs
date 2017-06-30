@@ -261,16 +261,15 @@ public class Scanners : MonoBehaviour
 	private void CalibrateColors() {
 		for (int i = 0; i < sampleCubes.Length; i++) {
 			if (setup) { 
-				sampleCubes [i].transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale); 
+				sampleCubes [i].transform.localScale = new Vector3 (0.1f, 0.5f, 5); 
 				sampleCubes [i].transform.position = new Vector3(sampleCubes [i].transform.position.x, keystonedQuad.transform.position.y + 0.2f, sampleCubes [i].transform.position.z);
 				LoadSamplers ();
 			}
-			if (Physics.Raycast (sampleCubes[i].transform.position, Vector3.down, out hit, 6)) {
-				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
-				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
-				Color pixel = hitTex.GetPixel (_locX, _locY);
+			if (Physics.Raycast (sampleCubes[i].transform.position, Vector3.down, out hit, 60)) {
+				Color pixel = hit.collider.GetComponent<Renderer> ().material.color;
 				sampleCubes [i].GetComponent<Renderer> ().material.color = pixel;
 				colorClassifier.SetSampledColors (i, pixel);
+				//Debug.DrawLine (sampleCubes[i].transform.position, hit.point, pixel, 200, false);
 			}
 		}
 	}
@@ -439,7 +438,7 @@ public class Scanners : MonoBehaviour
 		
 		for (int i = 0; i < sampleCubes.Length; i++) {
 			sampleCubes [i].transform.position = colorSettings.position [i];
-			sampleCubes[i].transform.localScale = new Vector3 (colorSettings.scannerScale, colorSettings.scannerScale * 20, colorSettings.scannerScale);
+			//sampleCubes[i].transform.localScale = new Vector3 (colorSettings.scannerScale, colorSettings.scannerScale * 20, colorSettings.scannerScale);
 		}
 			
 	}
