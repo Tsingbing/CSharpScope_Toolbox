@@ -9,9 +9,137 @@ using System.Linq;
 [System.Serializable]
 public class ColorSettings {
 	// Color sample objects
-	public Vector3[] position = new Vector3[4];
-	public float scannerScale;
+	public Vector3[] position;
+
+	public ColorSettings(int positionSize) {
+		position = new Vector3[positionSize];
+	}
 }
+
+public class ColorClassifier {
+	public Vector2[] colorRanges;
+	private GameObject[] debugColorObjectsH;
+	private GameObject[] debugColorObjectsL;
+	Dictionary<int, Vector3> hsvColors;
+
+	private string colorScaleParentName = "Scale visualization";
+	public GameObject colorScaleParent;
+
+	// red, black, white
+	// 0 - white
+	// 1 - black
+	// 2 - red
+	// %3
+	public static int NUM_SAMPLED_COLORS = 9;
+	private Vector3[] sampledColors = new Vector3[NUM_SAMPLED_COLORS];
+
+	/// <summary>
+	/// Finds the closest color to the given scan colors.
+	/// </summary>
+	/// <returns>The closest color's index in the colors array.</returns>
+	/// <param name="pixel">Pixel.</param>
+	public int GetClosestColorId(Color pixel) {
+		Vector3 currPixel = new Vector3 (pixel.r, pixel.g, pixel.b);
+		double minDistance = Double.PositiveInfinity;
+		int minColorID = -1;
+
+		for (int i = 0; i < sampledColors.Length; i++) {
+			double currDistance = Vector3.Distance (sampledColors [i], currPixel);
+			if (currDistance < minDistance) {
+				minDistance = currDistance;
+				minColorID = i;
+			}
+		}
+		return minColorID % 3;
+	}
+
+	/// <summary>
+	/// Sets the sampled colors.
+	/// </summary>
+	public void SetSampledColors(int index, Color pixel) {
+		sampledColors[index] =  new Vector3 (pixel.r, pixel.g, pixel.b);
+	}
+
+	/// <summary>
+	/// Gets the color.
+	/// </summary>
+	/// <returns>The color.</returns>
+	public Color GetColor(int id) {
+		Color currColor = new Color (sampledColors [id].x, sampledColors [id].y, sampledColors [id].z);
+		return currColor;
+	}
+
+
+	/// <summary>
+	/// Sorts the colors.
+	/// Python
+	/// </summary>
+	public Vector3 ToCustomHSV(Color rgbColor) {
+		float H, S, V;
+		Color.RGBToHSV(rgbColor, out H, out S, out V);
+
+		float lum = (float) Math.Sqrt (0.241f * rgbColor.r + 0.691f * rgbColor.g + 0.068f * rgbColor.b);
+		//Vector3 hsvVector = new Vector3 ((int)(H * 7), (int)(lum * 7), (int)(V * 7));
+		Vector3 hsvVector = new Vector3 ((H * 7), (lum * 7), (V * 7));
+		//Vector3 hsvVector = new Vector3 (H, S, V);
+
+		return hsvVector;
+	}
+
+	private void createDebugObjects(int length) {
+		if (debugColorObjectsH == null) {
+			float sizeX = 0.005f;
+			float sizeY = 2f;
+			float locationZ = -10;
+
+			colorScaleParent = GameObject.Find (colorScaleParentName);
+			debugColorObjectsH = new GameObject[length];
+			debugColorObjectsL = new GameObject[length];
+			float locationX = colorScaleParent.transform.position.x;
+
+			for (int i = 0; i < length; i++) {
+				debugColorObjectsH [i] = GameObject.CreatePrimitive (PrimitiveType.Quad);
+				debugColorObjectsH [i].transform.localScale = new Vector3 (sizeX, sizeY, 1);  
+				debugColorObjectsH [i].transform.position = new Vector3 (i * sizeX + locationX, 0, locationZ);
+				debugColorObjectsH [i].transform.Rotate (90, 0, 0); 
+				debugColorObjectsH [i].transform.parent = colorScaleParent.transform;
+
+				debugColorObjectsL [i] = GameObject.CreatePrimitive (PrimitiveType.Quad);
+				debugColorObjectsL [i].transform.localScale = new Vector3 (sizeX, sizeY, 1);  
+				debugColorObjectsL [i].transform.position = new Vector3 (i * sizeX + locationX, 0, locationZ + sizeY * 2);
+				debugColorObjectsL [i].transform.Rotate (90, 0, 0); 
+				debugColorObjectsL [i].transform.parent = colorScaleParent.transform;
+			}
+
+			hsvColors = new Dictionary<int, Vector3> ();
+		}
+	}
+
+	public void SortColors(Color[] colors) {
+		createDebugObjects (colors.Length);
+
+		for (int i = 0; i < colors.Length; i++) {
+			hsvColors [i] = ToCustomHSV (colors [i]);
+		}
+
+		Dictionary<int, Vector3> hsvColorsSorted = hsvColors.OrderBy(x => x.Value.x).ToDictionary(x => x.Key, x => x.Value);
+
+		int index = 0;
+		foreach (var item in hsvColorsSorted) {
+			Color rgbColor = colors [item.Key];
+			debugColorObjectsH[index++].GetComponent<Renderer> ().material.color = rgbColor;
+		}
+
+		Dictionary<int, Vector3> hsvColorsSortedL = hsvColors.OrderBy(x => x.Value.y).ToDictionary(x => x.Key, x => x.Value);
+
+		index = 0;
+		foreach (var item in hsvColorsSortedL) {
+			Color rgbColor = colors [item.Key];
+			debugColorObjectsL[index++].GetComponent<Renderer> ().material.color = rgbColor;
+		}
+	}
+}
+
 
 public class Scanners : MonoBehaviour
 {
@@ -24,42 +152,37 @@ public class Scanners : MonoBehaviour
 	public int _gridSizeY;
 	private int numOfScannersX;
 	private int numOfScannersY;
+
 	private GameObject _scanner;
 	RaycastHit hit;
 	RenderTexture rTex;
 	Texture2D _texture;
 	GameObject keystonedQuad;
 
-	public int _refreshRate = 10;
+	public float _refreshRate = 1;
 	public float _scannerScale = 0.5f;
 	public bool _useWebcam;
 	public bool _showRays = false;
-	public float xOffset = 0;
-	public float zOffset = 0;
 	public bool _debug = true;
 	public bool _isCalibrating;
-	public int _gridSize = 2; // i.e. 2x2 reading for one cell
+	int _gridSize = 2; // i.e. 2x2 reading for one cell
 
 	private bool setup = true;
 
 	// Color calibration
-	ColorSettings colorSettings = new ColorSettings();
-	GameObject[] sampleCubes = new GameObject[4];
-	private string colorRedName = "Sample red";
-	private string colorBlackName = "Sample black";
-	private string colorWhiteName = "Sample white";
-	private string colorGrayName = "Sample gray";
+	ColorSettings colorSettings;
+	ColorClassifier colorClassifier = new ColorClassifier ();
+
+	GameObject[] sampleCubes;
+	public GameObject _colorSamplerParent;
+
 	private string colorTexturedQuadName = "KeystonedTextureQuad";
 
 	public string _colorSettingsFileName = "_sampleColorSettings.json";
 
-	// red, black, white, gray
-	// 0 - white
-	// 1 - black
-	// 2 - red
-	// 3 - unknown / gray
-	private Vector3[] sampledColors = new Vector3[4];
 	private Texture2D hitTex;
+
+	private Color[] allColors;
 
 	enum Brick { RL = 0, RM = 1, RS = 2, OL = 3, OM = 4, OS = 5, ROAD = 6 };
 
@@ -115,12 +238,13 @@ public class Scanners : MonoBehaviour
 	/// Initializes the variables.
 	/// </summary>
 	private void InitVariables() {
-		numOfScannersX = _gridSizeX * 2;
-		numOfScannersY = _gridSizeY * 2;
+		numOfScannersX = _gridSizeX * _gridSize;
+		numOfScannersY = _gridSizeY * _gridSize;
 		scannersList = new GameObject[numOfScannersX, numOfScannersY];
+		allColors = new Color[numOfScannersX * numOfScannersY];
 		currentIds = new int[numOfScannersX / _gridSize, numOfScannersY / _gridSize];
-		sampleCubes = new GameObject[4];
-		SetSampleObjects ();
+		sampleCubes = new GameObject[ColorClassifier.NUM_SAMPLED_COLORS];
+		SetupSampleObjects ();
 		MakeScanners ();
 
 		// Find copy mesh with RenderTexture
@@ -139,26 +263,27 @@ public class Scanners : MonoBehaviour
 	/// </summary>
 	private void CalibrateColors() {
 		for (int i = 0; i < sampleCubes.Length; i++) {
-			if (setup) { 
-				sampleCubes [i].transform.localScale = new Vector3 (_scannerScale, _scannerScale, _scannerScale); 
-				sampleCubes [i].transform.position = new Vector3(sampleCubes [i].transform.position.x, keystonedQuad.transform.position.y + 0.2f, sampleCubes [i].transform.position.z);
-				LoadSamplers ();
-			}
-			if (Physics.Raycast (sampleCubes[i].transform.position, Vector3.down, out hit, 6)) {
+			if (Physics.Raycast (sampleCubes[i].transform.position, Vector3.down, out hit, 60)) {
 				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
 				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
 				Color pixel = hitTex.GetPixel (_locX, _locY);
 				sampleCubes [i].GetComponent<Renderer> ().material.color = pixel;
-				sampledColors[i] =  new Vector3 (pixel.r, pixel.g, pixel.b);
+				colorClassifier.SetSampledColors (i, pixel);
 			}
 		}
 	}
 
-	private void SetSampleObjects() {
-		sampleCubes[0] = GameObject.Find (colorWhiteName);
-		sampleCubes[1] = GameObject.Find (colorBlackName);
-		sampleCubes[2] = GameObject.Find (colorRedName);
-		sampleCubes[3] = GameObject.Find (colorGrayName);
+	/// <summary>
+	/// Sets the sample objects.
+	/// </summary>
+	private void SetupSampleObjects() {
+		for (int i = 0; i < sampleCubes.Length; i++) {
+			sampleCubes [i] = GameObject.CreatePrimitive (PrimitiveType.Cube);
+			sampleCubes[i].name = "sample_" + i;
+			sampleCubes [i].transform.parent = _colorSamplerParent.transform;
+			sampleCubes [i].transform.localScale = new Vector3 (0.1f, 0.1f, 0.1f); 
+			sampleCubes [i].transform.position = new Vector3(0, sampleCubes [i].transform.parent.position.y + 0.2f, 0);
+		}
 	}
 
 	/// <summary>
@@ -171,7 +296,7 @@ public class Scanners : MonoBehaviour
 				key = "";
 				for (int k = 0; k < _gridSize; k++) {
 					for (int m = 0; m < _gridSize; m++) {
-						key += findColor (i + k, j + m); 
+						key += FindColor (i + k, j + m); 
 					}
 				} 
 					
@@ -195,6 +320,9 @@ public class Scanners : MonoBehaviour
 				}
 			}
 		}
+
+		if (_debug)
+			colorClassifier.SortColors (allColors);
 	}
 
 
@@ -212,6 +340,8 @@ public class Scanners : MonoBehaviour
 		for (int i = 0; i < currentIds.GetLength(0); i++) {
 			for (int j = 0; j < currentIds.GetLength(1); j++) {
 				matrix += currentIds [i, j] + "";
+				if (currentIds [i, j] >= 0)
+					matrix += " ";
 			}
 			matrix += "\n";
 		}
@@ -223,7 +353,7 @@ public class Scanners : MonoBehaviour
 	/// </summary>
 	/// <param name="i">The row index.</param>
 	/// <param name="j">The column index.</param>
-	private int findColor(int i, int j) {
+	private int FindColor(int i, int j) {
 		if (Physics.Raycast (scannersList [i, j].transform.position, Vector3.down, out hit, 6)) {
 			// Get local tex coords w.r.t. triangle
 
@@ -235,17 +365,19 @@ public class Scanners : MonoBehaviour
 				int _locX = Mathf.RoundToInt (hit.textureCoord.x * hitTex.width);
 				int _locY = Mathf.RoundToInt (hit.textureCoord.y * hitTex.height); 
 				Color pixel = hitTex.GetPixel (_locX, _locY);
-				int pixelID = ClosestColor (pixel);
-				Color currPixel = new Color(sampledColors [pixelID].x, sampledColors [pixelID].y, sampledColors [pixelID].z);
+				allColors [i + numOfScannersX * j] = pixel;
+				int currID = colorClassifier.GetClosestColorId (pixel);
+				Color minColor = colorClassifier.GetColor (currID);
+
 
 				//paint scanner with the found color 
-				scannersList [i, j].GetComponent<Renderer> ().material.color = currPixel;
+				scannersList [i, j].GetComponent<Renderer> ().material.color = minColor;
 
 				if (_showRays) {
 					Debug.DrawLine (scannersList [i, j].transform.position, hit.point, pixel, 200, false);
 					Debug.Log (hit.point);
 				}
-				return pixelID;
+				return currID;
 			}
 		} else { 
 			scannersList [i, j].GetComponent<Renderer> ().material.color = Color.magenta; //paint scanner with Out of bounds  color 
@@ -283,26 +415,6 @@ public class Scanners : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Finds the closest color to the given scan colors.
-	/// </summary>
-	/// <returns>The closest color's index in the colors array.</returns>
-	/// <param name="pixel">Pixel.</param>
-	private int ClosestColor(Color pixel) {
-		Vector3 currPixel = new Vector3 (pixel.r, pixel.g, pixel.b);
-		double minDistance = Double.PositiveInfinity;
-		int minColor = -1;
-
-		for (int i = 0; i < sampledColors.Length; i++) {
-			double currDistance = Vector3.Distance (sampledColors [i], currPixel);
-			if (currDistance < minDistance) {
-				minDistance = currDistance;
-				minColor = i;
-			}
-		}
-		return minColor;
-	}
-
-	/// <summary>
 	/// Initialize scanners.
 	/// </summary>
 	private void MakeScanners ()
@@ -329,10 +441,11 @@ public class Scanners : MonoBehaviour
 
 		string dataAsJson = JsonParser.loadJSON (_colorSettingsFileName, _debug);
 		colorSettings = JsonUtility.FromJson<ColorSettings>(dataAsJson);
-		
-		for (int i = 0; i < sampleCubes.Length; i++) {
+
+		if (colorSettings == null) return;
+
+		for (int i = 0; i < colorSettings.position.Length; i++) {
 			sampleCubes [i].transform.position = colorSettings.position [i];
-			sampleCubes[i].transform.localScale = new Vector3 (colorSettings.scannerScale, colorSettings.scannerScale * 20, colorSettings.scannerScale);
 		}
 			
 	}
@@ -344,7 +457,9 @@ public class Scanners : MonoBehaviour
 		if (_debug)
 			Debug.Log ("Saving color sampling settings.");
 
-		colorSettings.scannerScale = _scannerScale;
+		if (colorSettings == null) {
+			colorSettings = new ColorSettings (sampleCubes.Length);
+		}
 
 		for (int i = 0; i < sampleCubes.Length; i++) {
 			colorSettings.position [i] = sampleCubes [i].transform.position;
@@ -374,7 +489,7 @@ public class Scanners : MonoBehaviour
 	void OnReload() {
 		Debug.Log ("Color config was reloaded!");
 
-		SetSampleObjects ();
+		SetupSampleObjects ();
 		LoadSamplers ();
 	}
 
