@@ -30,7 +30,7 @@ public class ColorClassifier {
 	// 1 - black
 	// 2 - red
 	// %3
-	public static int NUM_SAMPLED_COLORS = 6;
+	public static int NUM_SAMPLED_COLORS = 9;
 	private Vector3[] sampledColors = new Vector3[NUM_SAMPLED_COLORS];
 
 	/// <summary>
